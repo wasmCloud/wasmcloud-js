@@ -1,0 +1,70 @@
+{
+  "name": "wasmcloud-js",
+  "version": "0.1.0",
+  "description": "wasmcloud host in JavaScript/Browser",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "scripts": {
+    "build": "npm run clean && npm run build:browser && npm run build:cjs",
+    "build:browser": "webpack --mode=production",
+    "build:cjs": "tsc --declaration",
+    "build:wasm": "cd wasmcloud-rs-js && wasm-pack build --target web",
+    "clean": "rm -rf ./dist/ && rm -rf ./wasmcloud-rs-js/pkg/",
+    "lint": "eslint --ext .ts src test",
+    "format": "prettier --write 'src/**/*.ts' 'test/**/*.ts'",
+    "test": "mocha",
+    "watch": "npm run clean && tsc -w --declrataion"
+  },
+  "prettier": ".prettierrc.json",
+  "keywords": [
+    "wasmcloud",
+    "wasmcloud-host",
+    "wasm"
+  ],
+  "eslintConfig": {
+    "$schema": "http://json.schemastore.org/eslintrc",
+    "root": true,
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+      "@typescript-eslint"
+    ],
+    "extends": [
+      "eslint:recommended",
+      "plugin:@typescript-eslint/recommended"
+    ]
+  },
+  "mocha": {
+    "$schema": "https://json.schemastore.org/mocharc",
+    "extension": [
+      "ts"
+    ],
+    "spec": "test/**/*.test.ts",
+    "require": "ts-node/register"
+  },
+  "author": "ks2211 <kaushik@cosmonic.com>",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/chai": "^4.2.21",
+    "@types/chai-as-promised": "^7.1.4",
+    "@types/mocha": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "^4.22.0",
+    "@typescript-eslint/parser": "^4.29.2",
+    "@wasm-tool/wasm-pack-plugin": "^1.5.0",
+    "chai": "^4.3.4",
+    "chai-as-promised": "^7.1.1",
+    "esbuild": "^0.12.20",
+    "eslint": "^7.32.0",
+    "mocha": "^9.0.3",
+    "path": "^0.12.7",
+    "ts-loader": "^9.2.5",
+    "ts-node": "^10.2.1",
+    "typescript": "^4.3.5",
+    "webpack": "^5.50.0",
+    "webpack-cli": "^4.8.0"
+  },
+  "dependencies": {
+    "@msgpack/msgpack": "^2.7.0",
+    "@wapc/host": "0.0.2",
+    "nats.ws": "^1.2.0"
+  }
+}
