@@ -23,7 +23,7 @@ jobs:
           registry-url: https://registry.npmjs.org/
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-      - run: npm install
+      - run: npm install --globalconfig
       # - run: npm run test
       - run: npm run lint
       - run: npm run build
