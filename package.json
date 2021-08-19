@@ -1,9 +1,15 @@
 {
   "name": "@wasmcloud/wasmcloud-js",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "wasmcloud host in JavaScript/Browser",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "wasmcloud-rs-js/pkg*"
+  ],
   "scripts": {
     "build": "npm run clean && npm run build:browser && npm run build:cjs",
     "build:browser": "webpack --mode=production",
