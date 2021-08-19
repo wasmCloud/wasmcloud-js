@@ -1,2 +1,6 @@
 /target
 /tests
+**/*.rs.bk
+Cargo.lock
+bin/
+wasm-pack.log

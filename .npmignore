@@ -1,5 +1,0 @@
-wasmcloud-rs-js/target
-**/*.rs.bk
-wasmcloud-rs-js/Cargo.lock
-wasmcloud-rs-js/bin/
-wasmcloud-rs-js/wasm-pack.log
