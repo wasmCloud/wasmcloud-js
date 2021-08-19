@@ -8,6 +8,7 @@
   ],
   "compilerOptions": {
     "rootDir": "./",
+    "baseUrl": ".",
     "target": "ES2018",
     "module": "commonjs",
     "lib": ["es2018", "DOM"],
@@ -20,7 +21,8 @@
     "noUnusedLocals": true,                                   
     "typeRoots": [
       "./types", 
-      "./node_modules/@types"
+      "./node_modules/@types",
+      "./wasmcloud-rs-js/pkg/"
     ],
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true

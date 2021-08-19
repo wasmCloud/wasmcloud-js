@@ -5,10 +5,6 @@ import {
   Subscription
 } from 'nats.ws';
 
-import init, {
-  HostKey, InitOutput
-} from '../wasmcloud-rs-js/pkg/wasmcloud_rs_js';
-
 import { Actor, newActor } from './actor';
 import { createEventMessage, EventType } from './events';
 import { fetchActor, fetchActorDigest, ImageDigest } from './fetch';
@@ -24,7 +20,7 @@ import { jsonDecode, jsonEncode, uuidv4 } from './util';
 
 const HOST_HEARTBEAT_INTERVAL: number = 30000;
 
-class Host {
+export class Host {
   name: string;
   key: string;
   seed: string;
@@ -38,15 +34,17 @@ class Host {
   };
   natsConn!: NatsConnection;
   eventsSubscription!: Subscription | null;
+  wasm: any;
 
 
-  constructor(name: string = 'default', withRegistryTLS: boolean, wasm: InitOutput) {
-    const hostKey = new HostKey();
+  constructor(name: string = 'default', withRegistryTLS: boolean, wasm: any) {
+    const hostKey = new wasm.HostKey();
     this.name = name;
     this.key = hostKey.pk;
     this.seed = hostKey.seed;
     this.withRegistryTLS = withRegistryTLS;
     this.actors = {};
+    this.wasm = wasm;
   }
 
   async connectNATS(natsConnOpts: Array<string> | ConnectionOptions) {
@@ -140,6 +138,7 @@ class Host {
         const actor: Actor = await newActor(this.name, this.key,
           actorModule,
           this.natsConn,
+          this.wasm,
           invocationCallbacks ? invocationCallbacks[actorRef] : undefined
         );
 
@@ -193,14 +192,15 @@ export async function startHost(
   invocationCallbacks?: InvocationCallbacks,
   heartBeatInterval?: number
 ) {
-  const wasm: InitOutput = await init('../wasmcloud-rs-js/pkg/wasmcloud_rs_js_bg.wasm');
+  const wasmModule: any = await import('../wasmcloud-rs-js/pkg/');
+  const wasm: any = await wasmModule.default;
   const host: Host = new Host(name, withRegistryTLS, wasm);
   await host.connectNATS(natsConnection);
   Promise.all([
     host.startHeartbeat(heartBeatInterval),
     host.listenLaunchActor(invocationCallbacks),
     host.listenStopActor()
-  ]).catch((err) => {
+  ]).catch((err: Error) => {
     throw err;
   });
   return host;

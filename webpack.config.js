@@ -10,23 +10,23 @@ const baseConfig = {
 			{
 				test: /\.tsx?$/,
 				use: 'ts-loader',
-				exclude: /node_modules/,
+				exclude: /node_modules/
 			}
-		],
+		]
 	},
 	resolve: {
-		extensions: ['.tsx', '.ts', '.js'],
+		extensions: ['.tsx', '.ts', '.js']
 	},
 	plugins: [
 		new WasmPackPlugin({
 			crateDirectory: path.resolve(__dirname, 'wasmcloud-rs-js'),
-			extraArgs: '--target web',
+			extraArgs: '--target bundler',
 			outDir: path.resolve(__dirname, 'wasmcloud-rs-js', 'pkg'),
-			outName: 'wasmcloud_rs_js',
+			outName: 'wasmcloud_rs_js'
 		})
 	],
 	experiments: {
-		asyncWebAssembly: true,
+		asyncWebAssembly: true
 	}
 }
 
@@ -35,23 +35,23 @@ const nodeConfig = {
 	output: {
 		filename: 'index.node.js',
 		path: path.resolve(__dirname, 'dist', 'src'),
-		libraryTarget: 'commonjs',
+		libraryTarget: 'umd',
 		libraryExport: 'default',
-		library: 'wasmcloudjs',
-	},
+		library: 'wasmcloudjs'
+	}
 }
 
 const browserConfig = {
 	output: {
 		filename: 'index.bundle.js',
 		path: path.resolve(__dirname, 'dist'),
-		library: 'wasmcloudjs',
-	},
+		library: 'wasmcloudjs'
+	}
 }
 
 module.exports = () => {
 	Object.assign(nodeConfig, baseConfig);
 	Object.assign(browserConfig, baseConfig);
 	return [browserConfig]
-	//return [browserConfig, nodeConfig];
+	// return [browserConfig, nodeConfig];
 };

@@ -1,5 +1,5 @@
 {
-  "name": "wasmcloud-js",
+  "name": "@wasmcloud/wasmcloud-js",
   "version": "0.1.0",
   "description": "wasmcloud host in JavaScript/Browser",
   "main": "dist/src/index.js",
@@ -8,7 +8,7 @@
     "build": "npm run clean && npm run build:browser && npm run build:cjs",
     "build:browser": "webpack --mode=production",
     "build:cjs": "tsc --declaration",
-    "build:wasm": "cd wasmcloud-rs-js && wasm-pack build --target web",
+    "build:wasm": "cd wasmcloud-rs-js && wasm-pack build",
     "clean": "rm -rf ./dist/ && rm -rf ./wasmcloud-rs-js/pkg/",
     "lint": "eslint --ext .ts src test",
     "format": "prettier --write 'src/**/*.ts' 'test/**/*.ts'",
