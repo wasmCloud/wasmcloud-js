@@ -2,6 +2,22 @@
 
 This is the JavaScript implementation of the wasmCloud host for the browser (NodeJS support in progress). The library runs a host inside a web browser/application that connects to a remote lattice via NATS and can run wasmCloud actors in the browser. The host will automatically listen for actor start/stop from NATS and will initialize the actor using `wapcJS`. Any invocations will be handled by the browser actor and returned to the requesting host via NATS. Users can pass callbacks to handle invocation and event data.
 
+## Demonstration Video
+
+In this demonstration video we will demonstration the following:
+
+* Load an HTTP Server capability into a wasmCloud Host running on a machine
+* Load an the wasmcloud-js host into a web browser
+* Load an 'echo' actor into the web browser
+* **seemlessly** bind the actor to the capability provider through Lattice
+* Access the webserver, which in turn delivers the request to the actor, processes it, and returns it to the requestion client via the capability
+* Unload the actor
+
+https://user-images.githubusercontent.com/1530656/130013412-b9a9daa6-fc71-424b-814c-2ca400926794.mp4
+
+
+
+
 ## Prerequisities
 
 * NATS with WebSockets enabled
