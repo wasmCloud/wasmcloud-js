@@ -2,8 +2,6 @@ import { encode, decode } from '@msgpack/msgpack';
 import { instantiate, WapcHost } from '@wapc/host';
 import { NatsConnection, Subscription } from 'nats.ws';
 
-import { extract_jwt, validate_jwt } from '../wasmcloud-rs-js/pkg/wasmcloud_rs_js';
-
 import { createEventMessage, EventType } from './events';
 import {
   ActorClaims, ActorClaimsMessage, ActorStartedMessage, ActorHealthCheckPassMessage,
@@ -18,8 +16,9 @@ export class Actor {
   module!: WapcHost;
   hostKey: string;
   hostName: string;
+  wasm: any;
 
-  constructor(hostName: string = 'default', hostKey: string) {
+  constructor(hostName: string = 'default', hostKey: string, wasm: any) {
     this.key = '';
     this.hostName = hostName;
     this.hostKey = hostKey;
@@ -37,11 +36,12 @@ export class Actor {
         prov: false
       }
     };
+    this.wasm = wasm;
   }
 
-  async initActor(actorBuffer: Uint8Array) {
-    const token: string = await extract_jwt(actorBuffer);
-    const valid: boolean = await validate_jwt(token);
+  async startActor(actorBuffer: Uint8Array) {
+    const token: string = await this.wasm.extract_jwt(actorBuffer);
+    const valid: boolean = await this.wasm.validate_jwt(token);
     if (!valid) {
       throw new Error('invalid token');
     }
@@ -59,7 +59,7 @@ export class Actor {
   }
 
   async publishActorStarted(natsConn: NatsConnection) {
-    // publish claims,
+    // publish claims
     const claims: ActorClaimsMessage = {
       call_alias: '',
       caps: this.claims.wascap.caps[0],
@@ -105,19 +105,23 @@ export class Actor {
         invocationCallback(invocationResult);
       }
     }
+    throw new Error('actor.inovcation subscription closed');
   }
 }
 
 export async function newActor(hostName: string, hostKey: string,
   actorModule: Uint8Array,
   natsConn: NatsConnection,
+  wasm: any,
   invocationCallback?: Function
 ): Promise<Actor> {
-  const actor: Actor = new Actor(hostName, hostKey);
-  await actor.initActor(actorModule);
+  const actor: Actor = new Actor(hostName, hostKey, wasm);
+  await actor.startActor(actorModule);
   await actor.publishActorStarted(natsConn);
-  (async () => {
-    await actor.subscribeInvocations(natsConn, invocationCallback);
-  })();
+  Promise.all([
+    actor.subscribeInvocations(natsConn, invocationCallback)
+  ]).catch((err) => {
+    throw err;
+  });
   return actor;
 }
