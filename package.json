@@ -1,11 +1,10 @@
 {
   "name": "@wasmcloud/wasmcloud-js",
-  "version": "0.1.2",
+  "version": "0.1.2 ",
   "description": "wasmcloud host in JavaScript/Browser",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "scripts": {
-    "prepare": "npm run build",
     "build": "npm run clean && npm run build:browser && npm run build:cjs",
     "build:browser": "webpack --mode=production",
     "build:cjs": "tsc --declaration",
@@ -14,7 +13,8 @@
     "lint": "eslint --ext .ts src test",
     "format": "prettier --write 'src/**/*.ts' 'test/**/*.ts'",
     "test": "mocha",
-    "watch": "npm run clean && tsc -w --declrataion"
+    "watch": "npm run clean && tsc -w --declrataion",
+    "prepare": "npm run build"
   },
   "prettier": ".prettierrc.json",
   "keywords": [
