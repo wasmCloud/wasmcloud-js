@@ -78,6 +78,10 @@ $ npm install @wasmcloud/wasmcloud-js
     await host.connectNATS(["ws://locahost:4222/"], {});
     // to close/drain all connections from nats, call the disconnectNATS() method
     await host.disconnectNATS();
+    // stop the host
+    await host.stopHost();
+    // restart the host (this only needs to be called if the host is stopped, it is automatically called on the constructor)
+    await host.startHost();
   })();
 </script>
 ```

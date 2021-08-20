@@ -24,7 +24,9 @@ export class Host {
   name: string;
   key: string;
   seed: string;
+  heartbeatInterval: number;
   heartbeatIntervalId: any;
+  invocationCallbacks?: InvocationCallbacks;
   withRegistryTLS: boolean;
   actors: {
     [key: string]: {
@@ -32,12 +34,19 @@ export class Host {
       count: number;
     };
   };
+  natsConnOpts: Array<string> | ConnectionOptions;
   natsConn!: NatsConnection;
   eventsSubscription!: Subscription | null;
   wasm: any;
 
 
-  constructor(name: string = 'default', withRegistryTLS: boolean, wasm: any) {
+  constructor(name: string = 'default',
+    withRegistryTLS: boolean,
+    heartbeatInterval: number,
+    natsConnOpts: Array<string> | ConnectionOptions,
+    wasm: any,
+    invocationCallbacks?: InvocationCallbacks
+  ) {
     const hostKey = new wasm.HostKey();
     this.name = name;
     this.key = hostKey.pk;
@@ -45,20 +54,23 @@ export class Host {
     this.withRegistryTLS = withRegistryTLS;
     this.actors = {};
     this.wasm = wasm;
+    this.heartbeatInterval = heartbeatInterval;
+    this.natsConnOpts = natsConnOpts;
+    this.invocationCallbacks = invocationCallbacks;
   }
 
-  async connectNATS(natsConnOpts: Array<string> | ConnectionOptions) {
-    const opts: ConnectionOptions = (Array.isArray(natsConnOpts)) ? {
-      servers: natsConnOpts
-    } : natsConnOpts;
+  async connectNATS() {
+    const opts: ConnectionOptions = (Array.isArray(this.natsConnOpts)) ? {
+      servers: this.natsConnOpts
+    } : this.natsConnOpts;
     this.natsConn = await connect(opts);
   }
 
   async disconnectNATS() {
-    this.natsConn.drain();
+    this.natsConn.close();
   }
 
-  async startHeartbeat(heartBeatInterval?: number) {
+  async startHeartbeat() {
     this.heartbeatIntervalId;
     const heartbeat: HeartbeatMessage = {
       actors: [],
@@ -74,7 +86,7 @@ export class Host {
       this.natsConn.publish(`wasmbus.evt.${this.name}`,
         jsonEncode(createEventMessage(this.key, EventType.HeartBeat, heartbeat))
       );
-    }, heartBeatInterval ? heartBeatInterval : HOST_HEARTBEAT_INTERVAL)
+    }, this.heartbeatInterval)
   }
 
   async stopHeartbeat() {
@@ -115,7 +127,7 @@ export class Host {
     this.natsConn.publish(`wasmbus.ctl.${this.name}.cmd.${this.key}.sa`, jsonEncode(actorToStop))
   }
 
-  async listenLaunchActor(invocationCallbacks?: InvocationCallbacks) {
+  async listenLaunchActor() {
     // subscribe to the .la topic `wasmbus.ctl.${this.name}.cmd.${this.key}.la`
     // decode the data
     // fetch the actor from registry  or local
@@ -139,7 +151,7 @@ export class Host {
           actorModule,
           this.natsConn,
           this.wasm,
-          invocationCallbacks ? invocationCallbacks[actorRef] : undefined
+          this.invocationCallbacks?.[actorRef]
         );
 
         if (this.actors[actorRef]) {
@@ -159,6 +171,9 @@ export class Host {
   }
 
   async listenStopActor() {
+    // listen for stop actor message, decode the data
+    // publish actor_stopped to the lattice
+    // delete the actor from the host
     const actorsTopic: Subscription = this.natsConn.subscribe(`wasmbus.ctl.${this.name}.cmd.${this.key}.sa`);
     for await (const actorMessage of actorsTopic) {
       const actorData = jsonDecode(actorMessage.data);
@@ -183,6 +198,32 @@ export class Host {
     }
     this.natsConn.publish(`wasmbus.rpc.${this.name}.${providerKey}.${linkName}.linkdefs.put`, encode(linkDefinition))
   }
+
+  async startHost() {
+    await this.connectNATS();
+    Promise.all([
+      this.startHeartbeat(),
+      this.listenLaunchActor(),
+      this.listenStopActor()
+    ]).catch((err: Error) => {
+      throw err;
+    });
+  }
+
+  async stopHost() {
+    // stop the heartbeat
+    await this.stopHeartbeat();
+    // stop all actors
+    for (const actor in this.actors) {
+      await this.stopActor(actor);
+    }
+    // TODO: we need to wait to drain and disconnect to wait for the stop_actors to process
+    // drain all subscriptions
+    await this.natsConn.drain();
+    // disconnect nats
+    await this.disconnectNATS();
+    // return or throw?
+  }
 }
 
 export async function startHost(
@@ -190,18 +231,17 @@ export async function startHost(
   withRegistryTLS: boolean = true,
   natsConnection: Array<string> | ConnectionOptions,
   invocationCallbacks?: InvocationCallbacks,
-  heartBeatInterval?: number
+  heartbeatInterval?: number
 ) {
   const wasmModule: any = await import('../wasmcloud-rs-js/pkg/');
   const wasm: any = await wasmModule.default;
-  const host: Host = new Host(name, withRegistryTLS, wasm);
-  await host.connectNATS(natsConnection);
-  Promise.all([
-    host.startHeartbeat(heartBeatInterval),
-    host.listenLaunchActor(invocationCallbacks),
-    host.listenStopActor()
-  ]).catch((err: Error) => {
-    throw err;
-  });
+  const host: Host = new Host(name,
+    withRegistryTLS,
+    heartbeatInterval ? heartbeatInterval : HOST_HEARTBEAT_INTERVAL,
+    natsConnection,
+    wasm,
+    invocationCallbacks
+  );
+  await host.startHost();
   return host;
 }
