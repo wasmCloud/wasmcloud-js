@@ -1,7 +1,7 @@
 {
   "include": [
     "src/**/*.ts",
-    "wasmcloud-rs-js/**/*.ts"
+    "wasmcloud-rs-js/pkg/*"
   ],
   "exclude": [
     "node_modules"

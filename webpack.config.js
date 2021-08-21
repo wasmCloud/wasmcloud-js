@@ -3,7 +3,6 @@ const WasmPackPlugin = require('@wasm-tool/wasm-pack-plugin');
 
 const baseConfig = {
 	stats: { assets: false, modules: false },
-	mode: 'production',
 	entry: './src/index.ts',
 	module: {
 		rules: [
@@ -14,8 +13,9 @@ const baseConfig = {
 			}
 		]
 	},
+	mode: 'production',
 	resolve: {
-		extensions: ['.tsx', '.ts', '.js']
+		extensions: ['.tsx', '.ts', '.js', '.wasm']
 	},
 	plugins: [
 		new WasmPackPlugin({
@@ -30,28 +30,34 @@ const baseConfig = {
 	}
 }
 
-const nodeConfig = {
-	target: 'node',
+const commonJSConfig = {
 	output: {
-		filename: 'index.node.js',
+		filename: 'wasmcloud.js',
 		path: path.resolve(__dirname, 'dist', 'src'),
-		libraryTarget: 'umd',
-		libraryExport: 'default',
+		libraryTarget: 'commonjs2',
 		library: 'wasmcloudjs'
 	}
 }
 
 const browserConfig = {
 	output: {
-		filename: 'index.bundle.js',
+		filename: 'wasmcloud.js',
 		path: path.resolve(__dirname, 'dist'),
 		library: 'wasmcloudjs'
 	}
 }
 
-module.exports = () => {
-	Object.assign(nodeConfig, baseConfig);
-	Object.assign(browserConfig, baseConfig);
-	return [browserConfig]
-	// return [browserConfig, nodeConfig];
+module.exports = (env) => {
+	if (env.target === 'cjs') {
+		return [{
+			...commonJSConfig,
+			...baseConfig
+		}];
+	} else {
+		return [{
+			...baseConfig,
+			...browserConfig
+		}];
+	}
+
 };

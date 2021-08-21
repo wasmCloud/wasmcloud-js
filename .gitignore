@@ -2,4 +2,3 @@ node_modules/*
 dist/*
 index.html
 *.sh*
-wasmcloud-rs-js/pkg/

@@ -48,7 +48,7 @@ $ npm install @wasmcloud/wasmcloud-js
 **Browser**
 
 ```html
-<script src="dist/index.bundle.js"></script>
+<script src="dist/wasmcloud.js"></script>
 <script>
   (async () => {
     // start the host passing the name, registry tls enabled, a list of nats ws/wss hosts or the natsConnection object, a map of invocation callbacks, and a host heartbeat interval (default is 30 seconds)
@@ -72,10 +72,10 @@ $ npm install @wasmcloud/wasmcloud-js
     // to unsubscribe, call the unsubscribeEvents
     await host.unsubscribeEvents();
     // to start & stop the heartbeat events
-    await host.startHeartbeat(heartbeatInterval?);
+    await host.startHeartbeat();
     await host.stopHeartbeat();
     // the host will automatically connect to nats on start. to connect/reconnect to nats
-    await host.connectNATS(["ws://locahost:4222/"], {});
+    await host.connectNATS();
     // to close/drain all connections from nats, call the disconnectNATS() method
     await host.disconnectNATS();
     // stop the host
@@ -88,7 +88,7 @@ $ npm install @wasmcloud/wasmcloud-js
 
 **Node** 
 
-In progress--wasm-pack compile issues with nodeJS.
+*IN PROGRESS* - NodeJS does not support WebSockets natively (required by nats.ws)
 
 ## Contributing
 
