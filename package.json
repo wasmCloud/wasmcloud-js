@@ -1,6 +1,6 @@
 {
   "name": "@wasmcloud/wasmcloud-js",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "wasmcloud host in JavaScript/Browser",
   "main": "dist/wasmcloud.js",
   "module": "dist/src/index.js",
