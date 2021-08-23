@@ -1,8 +1,9 @@
 const path = require('path');
 const WasmPackPlugin = require('@wasm-tool/wasm-pack-plugin');
+const CopyPlugin = require('copy-webpack-plugin')
 
 const baseConfig = {
-	stats: { assets: false, modules: false },
+	stats: { assets: false, modules: false, errors: true },
 	entry: './src/index.ts',
 	module: {
 		rules: [
@@ -32,8 +33,9 @@ const baseConfig = {
 
 const commonJSConfig = {
 	output: {
+		webassemblyModuleFilename: 'wasmcloud.wasm',
 		filename: 'wasmcloud.js',
-		path: path.resolve(__dirname, 'dist', 'src'),
+		path: path.resolve(__dirname, 'dist', 'cjs'),
 		libraryTarget: 'commonjs2',
 		library: 'wasmcloudjs'
 	}
@@ -41,6 +43,7 @@ const commonJSConfig = {
 
 const browserConfig = {
 	output: {
+		webassemblyModuleFilename: 'wasmcloud.wasm',
 		filename: 'wasmcloud.js',
 		path: path.resolve(__dirname, 'dist'),
 		library: 'wasmcloudjs'
@@ -49,6 +52,16 @@ const browserConfig = {
 
 module.exports = (env) => {
 	if (env.target === 'cjs') {
+		baseConfig.plugins.push(
+			new CopyPlugin({
+				patterns: [
+					{
+						from: path.resolve(__dirname, 'wasmcloud-rs-js/pkg/*.wasm*'),
+						to: path.resolve(__dirname, 'dist/')
+					}
+				]
+			})
+		)
 		return [{
 			...commonJSConfig,
 			...baseConfig
