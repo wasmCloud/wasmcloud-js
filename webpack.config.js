@@ -22,8 +22,7 @@ const baseConfig = {
 		new WasmPackPlugin({
 			crateDirectory: path.resolve(__dirname, 'wasmcloud-rs-js'),
 			extraArgs: '--target bundler',
-			outDir: path.resolve(__dirname, 'wasmcloud-rs-js', 'pkg'),
-			outName: 'wasmcloud_rs_js'
+			outDir: path.resolve(__dirname, 'wasmcloud-rs-js', 'pkg')
 		})
 	],
 	experiments: {

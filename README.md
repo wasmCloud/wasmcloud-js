@@ -86,6 +86,38 @@ $ npm install @wasmcloud/wasmcloud-js
 </script>
 ```
 
+**With a bundler**
+
+There are some caveats to using with a bundler: 
+
+* The module contains `.wasm` files that need to be present alongside the final build output. Using `webpack-copy-plugin` can solve this issue.
+
+* Using the es6 imports is currently broken due to `webpack` bundling and the `.wasm` file -- this is being tracked/fixed.
+
+```javascript
+import { wasmcloudjs } from '@wasmcloud/wasmcloud-js/dist/cjs/wasmcloud'
+
+(async() => {
+    const host = await wasmcloudjs.startHost('default', false, ['ws://localhost:4222'])
+    console.log(host);
+})()
+
+```
+
+```javascript
+// webpack config, add this to the plugin section
+plugins: [
+		new CopyPlugin({
+			patterns: [
+				{
+					from: 'node_modules/@wasmcloud/wasmcloud-js/dist/cjs/*.wasm',
+					to: '[name].wasm'
+				}
+			]
+		}),
+	]
+```
+
 **Node** 
 
 *IN PROGRESS* - NodeJS does not support WebSockets natively (required by nats.ws)

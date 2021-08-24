@@ -1,14 +1,16 @@
 {
   "name": "@wasmcloud/wasmcloud-js",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "wasmcloud host in JavaScript/Browser",
   "main": "dist/wasmcloud.js",
+  "browser": "dist/wasmcloud.js",
   "module": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "files": [
     "dist",
     "src",
-    "README.md"
+    "README.md",
+    "wasmcloud-rs-js"
   ],
   "scripts": {
     "build": "npm run clean && npm run build:browser && npm run build:cjs",
@@ -60,7 +62,6 @@
     "chai": "^4.3.4",
     "chai-as-promised": "^7.1.1",
     "copy-webpack-plugin": "^9.0.1",
-    "esbuild": "^0.12.20",
     "eslint": "^7.32.0",
     "mocha": "^9.0.3",
     "path": "^0.12.7",
