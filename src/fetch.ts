@@ -4,7 +4,7 @@ export type ImageDigest = {
   name: string;
   digest: string;
   registry: string;
-}
+};
 
 type FetchActorDigestResponse = {
   schemaVersion: number;
@@ -19,7 +19,7 @@ type FetchActorDigestResponse = {
   layers: Array<{
     annotations: {
       ['org.opencontainers.image.title']: string;
-    }
+    };
     digest: string;
     mediaType: string;
     size: number;
@@ -33,13 +33,15 @@ export async function fetchActorDigest(actorRef: string, withTLS?: boolean): Pro
   const registry: string = image[0];
   const [name, version] = image[1].split(':');
 
-  const response: AxiosResponse = await axios.get(
-    `${withTLS ? 'https://' : 'http://'}${registry}/v2/${name}/manifests/${version}`,
-    {
+  const response: AxiosResponse = await axios
+    .get(`${withTLS ? 'https://' : 'http://'}${registry}/v2/${name}/manifests/${version}`, {
       headers: {
-        'Accept': 'application/vnd.oci.image.manifest.v1+json'
+        Accept: 'application/vnd.oci.image.manifest.v1+json'
       }
-    }).catch((err) => { throw err });
+    })
+    .catch(err => {
+      throw err;
+    });
   const layers: FetchActorDigestResponse = response.data;
 
   if (layers.layers.length === 0) {
@@ -50,17 +52,17 @@ export async function fetchActorDigest(actorRef: string, withTLS?: boolean): Pro
     name,
     digest: layers.layers[0].digest,
     registry
-  }
+  };
 }
 
 export async function fetchActor(url: string): Promise<Uint8Array> {
-  const response: AxiosResponse = await axios.get(
-    url,
-    {
+  const response: AxiosResponse = await axios
+    .get(url, {
       responseType: 'arraybuffer'
-    }
-  ).catch((err) => { throw err });
+    })
+    .catch(err => {
+      throw err;
+    });
 
   return new Uint8Array(response.data);
 }
-

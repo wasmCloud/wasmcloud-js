@@ -1,10 +1,10 @@
-import { uuidv4 } from './util'
+import { uuidv4 } from './util';
 
 export enum EventType {
   HeartBeat = 'com.wasmcloud.lattice.host_heartbeat',
   ActorStarted = 'com.wasmcloud.lattice.actor_started',
   ActorStopped = 'com.wasmcloud.lattice.actor_stopped',
-  HealthCheckPass = 'com.wasmcloud.lattice.health_check_passed',
+  HealthCheckPass = 'com.wasmcloud.lattice.health_check_passed'
 }
 
 export type EventData = {
@@ -15,7 +15,7 @@ export type EventData = {
   time: string;
   type: EventType;
   data: any;
-}
+};
 
 export function createEventMessage(hostKey: string, eventType: EventType, data: any): EventData {
   return {
@@ -26,5 +26,5 @@ export function createEventMessage(hostKey: string, eventType: EventType, data: 
     specversion: '1.0',
     time: new Date().toISOString(),
     type: eventType
-  }
+  };
 }
