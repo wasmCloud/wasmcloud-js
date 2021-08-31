@@ -35,23 +35,23 @@ const baseConfig = {
 	...sharedConfig
 }
 
-// this is used for require(wasmcloudjs) or import { wasmcloudjs } from 'dist/cjs/'
-const commonJSConfig = {
-	output: {
-		webassemblyModuleFilename: 'wasmcloud.wasm',
-		filename: 'wasmcloud.js',
-		path: path.resolve(__dirname, 'dist', 'cjs'),
-		libraryTarget: 'commonjs',
-		library: 'wasmcloudjs'
-	}
-}
-
 // this is specifically to use in a script tag
 const browserConfig = {
 	output: {
 		webassemblyModuleFilename: 'wasmcloud.wasm',
 		filename: 'wasmcloud.js',
 		path: path.resolve(__dirname, 'dist'),
+		library: 'wasmcloudjs'
+	}
+}
+
+// this is used for require(wasmcloudjs) or import { wasmcloudjs } from 'dist/cjs/'
+const commonJSConfig = {
+	output: {
+		webassemblyModuleFilename: 'wasmcloud.wasm',
+		filename: 'wasmcloud.js',
+		path: path.resolve(__dirname, 'dist', 'cjs'),
+		libraryTarget: 'commonjs2',
 		library: 'wasmcloudjs'
 	}
 }
