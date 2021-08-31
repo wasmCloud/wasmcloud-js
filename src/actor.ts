@@ -4,7 +4,10 @@ import { NatsConnection, Subscription } from 'nats.ws';
 
 import { createEventMessage, EventType } from './events';
 import {
-  ActorClaims, ActorClaimsMessage, ActorStartedMessage, ActorHealthCheckPassMessage,
+  ActorClaims,
+  ActorClaimsMessage,
+  ActorStartedMessage,
+  ActorHealthCheckPassMessage,
   InvocationMessage,
   StopActorMessage
 } from './types';
@@ -17,8 +20,9 @@ export class Actor {
   hostKey: string;
   hostName: string;
   wasm: any;
+  invocationCallback?: Function;
 
-  constructor(hostName: string = 'default', hostKey: string, wasm: any) {
+  constructor(hostName: string = 'default', hostKey: string, wasm: any, invocationCallback?: Function) {
     this.key = '';
     this.hostName = hostName;
     this.hostKey = hostKey;
@@ -37,6 +41,7 @@ export class Actor {
       }
     };
     this.wasm = wasm;
+    this.invocationCallback = invocationCallback;
   }
 
   async startActor(actorBuffer: Uint8Array) {
@@ -54,8 +59,8 @@ export class Actor {
     const actorToStop: StopActorMessage = {
       host_id: this.hostKey,
       actor_ref: this.key
-    }
-    natsConn.publish(`wasmbus.ctl.${this.hostName}.cmd.${this.hostKey}.sa`, jsonEncode(actorToStop))
+    };
+    natsConn.publish(`wasmbus.ctl.${this.hostName}.cmd.${this.hostKey}.sa`, jsonEncode(actorToStop));
   }
 
   async publishActorStarted(natsConn: NatsConnection) {
@@ -69,58 +74,65 @@ export class Actor {
       sub: this.claims.sub,
       tags: '',
       version: this.claims.wascap.ver
-    }
-    natsConn.publish(`lc.${this.hostName}.claims.${this.key}`, jsonEncode(claims))
+    };
+    natsConn.publish(`lc.${this.hostName}.claims.${this.key}`, jsonEncode(claims));
 
     // publish actor_started
     const actorStarted: ActorStartedMessage = {
       api_version: 0,
       instance_id: uuidv4(),
       public_key: this.key
-    }
-    natsConn.publish(`wasmbus.evt.${this.hostName}`, jsonEncode(createEventMessage(this.hostKey, EventType.ActorStarted, actorStarted)));
+    };
+    natsConn.publish(
+      `wasmbus.evt.${this.hostName}`,
+      jsonEncode(createEventMessage(this.hostKey, EventType.ActorStarted, actorStarted))
+    );
 
     // publish actor health_check
     const actorHealthCheck: ActorHealthCheckPassMessage = {
       instance_id: uuidv4(),
       public_key: this.key
-    }
-    natsConn.publish(`wasmbus.evt.${this.hostName}`, jsonEncode(createEventMessage(this.hostKey, EventType.HealthCheckPass, actorHealthCheck)));
-
+    };
+    natsConn.publish(
+      `wasmbus.evt.${this.hostName}`,
+      jsonEncode(createEventMessage(this.hostKey, EventType.HealthCheckPass, actorHealthCheck))
+    );
   }
 
-  async subscribeInvocations(natsConn: NatsConnection, invocationCallback?: Function) {
+  async subscribeInvocations(natsConn: NatsConnection) {
     // subscribe to topic, wait for invokes, invoke the host, if callback set, send message
     const invocationsTopic: Subscription = natsConn.subscribe(`wasmbus.rpc.${this.hostName}.${this.key}`);
     for await (const invocationMessage of invocationsTopic) {
       const invocationData = decode(invocationMessage.data);
-      const invocation: InvocationMessage = (invocationData as InvocationMessage)
+      const invocation: InvocationMessage = invocationData as InvocationMessage;
       const invocationResult: Uint8Array = await this.module.invoke(invocation.operation, invocation.msg);
-      invocationMessage.respond(encode({
-        invocation_id: (invocationData as any).id,
-        instance_id: uuidv4(),
-        msg: invocationResult
-      }));
-      if (invocationCallback) {
-        invocationCallback(invocationResult);
+      invocationMessage.respond(
+        encode({
+          invocation_id: (invocationData as any).id,
+          instance_id: uuidv4(),
+          msg: invocationResult
+        })
+      );
+      if (this.invocationCallback) {
+        this.invocationCallback(invocationResult);
       }
     }
     throw new Error('actor.inovcation subscription closed');
   }
 }
 
-export async function newActor(hostName: string, hostKey: string,
+export async function startActor(
+  hostName: string,
+  hostKey: string,
   actorModule: Uint8Array,
   natsConn: NatsConnection,
   wasm: any,
   invocationCallback?: Function
 ): Promise<Actor> {
-  const actor: Actor = new Actor(hostName, hostKey, wasm);
+  const actor: Actor = new Actor(hostName, hostKey, wasm, invocationCallback);
   await actor.startActor(actorModule);
   await actor.publishActorStarted(natsConn);
-  Promise.all([
-    actor.subscribeInvocations(natsConn, invocationCallback)
-  ]).catch((err) => {
+  Promise.all([actor.subscribeInvocations(natsConn)]).catch(err => {
     throw err;
   });
   return actor;

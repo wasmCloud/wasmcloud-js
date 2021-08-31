@@ -1,11 +1,7 @@
 import { encode } from '@msgpack/msgpack';
-import {
-  connect, ConnectionOptions,
-  NatsConnection,
-  Subscription
-} from 'nats.ws';
+import { connect, ConnectionOptions, NatsConnection, Subscription } from 'nats.ws';
 
-import { Actor, newActor } from './actor';
+import { Actor, startActor } from './actor';
 import { createEventMessage, EventType } from './events';
 import { fetchActor, fetchActorDigest, ImageDigest } from './fetch';
 import {
@@ -39,13 +35,13 @@ export class Host {
   eventsSubscription!: Subscription | null;
   wasm: any;
 
-
-  constructor(name: string = 'default',
+  constructor(
+    name: string = 'default',
     withRegistryTLS: boolean,
     heartbeatInterval: number,
     natsConnOpts: Array<string> | ConnectionOptions,
     wasm: any,
-    invocationCallbacks?: InvocationCallbacks
+    invocationCallbacks: InvocationCallbacks
   ) {
     const hostKey = new wasm.HostKey();
     this.name = name;
@@ -60,9 +56,11 @@ export class Host {
   }
 
   async connectNATS() {
-    const opts: ConnectionOptions = (Array.isArray(this.natsConnOpts)) ? {
-      servers: this.natsConnOpts
-    } : this.natsConnOpts;
+    const opts: ConnectionOptions = Array.isArray(this.natsConnOpts)
+      ? {
+          servers: this.natsConnOpts
+        }
+      : this.natsConnOpts;
     this.natsConn = await connect(opts);
   }
 
@@ -75,18 +73,19 @@ export class Host {
     const heartbeat: HeartbeatMessage = {
       actors: [],
       providers: []
-    }
+    };
     for (const actor in this.actors) {
       heartbeat.actors.push({
         actor: actor,
         instances: 1
-      })
+      });
     }
     this.heartbeatIntervalId = await setInterval(() => {
-      this.natsConn.publish(`wasmbus.evt.${this.name}`,
+      this.natsConn.publish(
+        `wasmbus.evt.${this.name}`,
         jsonEncode(createEventMessage(this.key, EventType.HeartBeat, heartbeat))
       );
-    }, this.heartbeatInterval)
+    }, this.heartbeatInterval);
   }
 
   async stopHeartbeat() {
@@ -95,7 +94,7 @@ export class Host {
   }
 
   async subscribeToEvents(eventCallback?: Function) {
-    this.eventsSubscription = this.natsConn.subscribe(`wasmbus.evt.${this.name}`)
+    this.eventsSubscription = this.natsConn.subscribe(`wasmbus.evt.${this.name}`);
     for await (const event of this.eventsSubscription) {
       const eventData = jsonDecode(event.data);
       if (eventCallback) {
@@ -110,21 +109,24 @@ export class Host {
     this.eventsSubscription = null;
   }
 
-
-  async launchActor(actorRef: string) {
+  async launchActor(actorRef: string, invocationCallback?: Function) {
     const actor: LaunchActorMessage = {
       actor_ref: actorRef,
       host_id: this.key
-    }
+    };
     this.natsConn.publish(`wasmbus.ctl.${this.name}.cmd.${this.key}.la`, jsonEncode(actor));
+    if (invocationCallback) {
+      this.invocationCallbacks![actorRef] = invocationCallback;
+    }
   }
 
   async stopActor(actorRef: string) {
     const actorToStop: StopActorMessage = {
       host_id: this.key,
       actor_ref: actorRef
-    }
-    this.natsConn.publish(`wasmbus.ctl.${this.name}.cmd.${this.key}.sa`, jsonEncode(actorToStop))
+    };
+    this.natsConn.publish(`wasmbus.ctl.${this.name}.cmd.${this.key}.sa`, jsonEncode(actorToStop));
+    delete this.invocationCallbacks![actorRef];
   }
 
   async listenLaunchActor() {
@@ -142,12 +144,16 @@ export class Host {
         let url: string;
         if (usingRegistry) {
           const actorDigest: ImageDigest = await fetchActorDigest(actorRef);
-          url = `${this.withRegistryTLS ? 'https://' : 'http://'}${actorDigest.registry}/v2/${actorDigest.name}/blobs/${actorDigest.digest}`
+          url = `${this.withRegistryTLS ? 'https://' : 'http://'}${actorDigest.registry}/v2/${actorDigest.name}/blobs/${
+            actorDigest.digest
+          }`;
         } else {
           url = actorRef;
         }
         const actorModule: Uint8Array = await fetchActor(url);
-        const actor: Actor = await newActor(this.name, this.key,
+        const actor: Actor = await startActor(
+          this.name,
+          this.key,
           actorModule,
           this.natsConn,
           this.wasm,
@@ -160,14 +166,14 @@ export class Host {
           this.actors[actorRef] = {
             count: 1,
             actor: actor
-          }
+          };
         }
       } catch (err) {
         // TODO: error handling
         console.log('error', err);
       }
     }
-    throw new Error('la.subscription was closed')
+    throw new Error('la.subscription was closed');
   }
 
   async listenStopActor() {
@@ -180,12 +186,14 @@ export class Host {
       const actorStop: ActorStoppedMessage = {
         instance_id: uuidv4(),
         public_key: this.actors[(actorData as StopActorMessage).actor_ref].actor.key
-      }
-      this.natsConn.publish(`wasmbus.evt.${this.name}`,
-        jsonEncode(createEventMessage(this.key, EventType.ActorStopped, actorStop)))
+      };
+      this.natsConn.publish(
+        `wasmbus.evt.${this.name}`,
+        jsonEncode(createEventMessage(this.key, EventType.ActorStopped, actorStop))
+      );
       delete this.actors[(actorData as StopActorMessage).actor_ref];
     }
-    throw new Error('sa.subscription was closed')
+    throw new Error('sa.subscription was closed');
   }
 
   async createLinkDefinition(actorKey: string, providerKey: string, linkName: string, contractId: string, values: any) {
@@ -195,17 +203,13 @@ export class Host {
       link_name: linkName,
       contract_id: contractId,
       values: values
-    }
-    this.natsConn.publish(`wasmbus.rpc.${this.name}.${providerKey}.${linkName}.linkdefs.put`, encode(linkDefinition))
+    };
+    this.natsConn.publish(`wasmbus.rpc.${this.name}.${providerKey}.${linkName}.linkdefs.put`, encode(linkDefinition));
   }
 
   async startHost() {
     await this.connectNATS();
-    Promise.all([
-      this.startHeartbeat(),
-      this.listenLaunchActor(),
-      this.listenStopActor()
-    ]).catch((err: Error) => {
+    Promise.all([this.startHeartbeat(), this.listenLaunchActor(), this.listenStopActor()]).catch((err: Error) => {
       throw err;
     });
   }
@@ -235,12 +239,13 @@ export async function startHost(
 ) {
   const wasmModule: any = await import('../wasmcloud-rs-js/pkg/');
   const wasm: any = await wasmModule.default;
-  const host: Host = new Host(name,
+  const host: Host = new Host(
+    name,
     withRegistryTLS,
     heartbeatInterval ? heartbeatInterval : HOST_HEARTBEAT_INTERVAL,
     natsConnection,
     wasm,
-    invocationCallbacks
+    invocationCallbacks || {}
   );
   await host.startHost();
   return host;

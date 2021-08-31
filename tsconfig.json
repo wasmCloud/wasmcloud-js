@@ -1,7 +1,7 @@
 {
   "include": [
     "src/**/*.ts",
-    "wasmcloud-rs-js/pkg/*"
+    // "wasmcloud-rs-js/pkg/*"
   ],
   "exclude": [
     "node_modules"
@@ -9,9 +9,6 @@
   "compilerOptions": {
     "rootDir": "./",
     "baseUrl": ".",
-    "paths": {
-      "../wasmcloud-rs-js/pkg/": ["./wasmcloud-rs-js/pkg/"]
-    },
     "target": "ES2018",
     "module": "commonjs",
     "lib": ["es2018", "DOM"],

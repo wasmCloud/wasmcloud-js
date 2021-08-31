@@ -4,7 +4,7 @@ export type HeartbeatMessage = {
     instances: number;
   }>;
   providers: [];
-}
+};
 
 export type CreateLinkDefMessage = {
   actor_id: string;
@@ -12,7 +12,7 @@ export type CreateLinkDefMessage = {
   link_name: string;
   contract_id: string;
   values: any;
-}
+};
 
 export type ActorClaims = {
   jti: string;
@@ -27,7 +27,7 @@ export type ActorClaims = {
     ver: string;
     prov: boolean;
   };
-}
+};
 
 export type ActorClaimsMessage = {
   call_alias: string;
@@ -38,33 +38,33 @@ export type ActorClaimsMessage = {
   sub: string;
   tags: string;
   version: string;
-}
+};
 
 export type LaunchActorMessage = {
   actor_ref: string;
   host_id: string;
-}
+};
 
 export type ActorStartedMessage = {
   api_version: number;
   instance_id: string;
   public_key: string;
-}
+};
 
 export type ActorHealthCheckPassMessage = {
   instance_id: string;
   public_key: string;
-}
+};
 
 export type StopActorMessage = {
   host_id: string;
   actor_ref: string;
-}
+};
 
 export type ActorStoppedMessage = {
   public_key: string;
   instance_id: string;
-}
+};
 
 export type InvocationMessage = {
   encoded_claims: string;
@@ -82,8 +82,8 @@ export type InvocationMessage = {
     link_name: string;
     contract_id: string;
   };
-}
+};
 
 export type InvocationCallbacks = {
   [key: string]: Function;
-}
+};

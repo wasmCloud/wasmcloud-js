@@ -1,10 +1,8 @@
 {
   "name": "@wasmcloud/wasmcloud-js",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "wasmcloud host in JavaScript/Browser",
-  "main": "dist/wasmcloud.js",
-  "browser": "dist/wasmcloud.js",
-  "module": "dist/src/index.js",
+  "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "files": [
     "dist",
@@ -13,10 +11,12 @@
     "wasmcloud-rs-js"
   ],
   "scripts": {
-    "build": "npm run clean && npm run build:browser && npm run build:cjs",
-    "build:browser": "webpack --mode=production",
-    "build:cjs": "tsc --declaration && webpack --mode=production --env target=cjs",
+    "build": "npm run clean && npm run build:browser && npm run build:ts && npm run build:cjs",
+    "build:browser": "webpack",
+    "build:ts": "tsc --declaration && npm run build:wasmbundle",
+    "build:cjs": "webpack --env target=cjs",
     "build:wasm": "cd wasmcloud-rs-js && wasm-pack build",
+    "build:wasmbundle": "webpack --env target=wasm",
     "clean": "rm -rf ./dist/ && rm -rf ./wasmcloud-rs-js/pkg/",
     "lint": "eslint --ext .ts src test",
     "format": "prettier --write 'src/**/*.ts' 'test/**/*.ts'",
@@ -24,10 +24,11 @@
     "watch": "npm run clean && tsc -w --declrataion",
     "prepare": "npm run build"
   },
-  "prettier": ".prettierrc.json",
+  "prettier": "./.prettierrc.json",
   "keywords": [
     "wasmcloud",
     "wasmcloud-host",
+    "wasmcloud-js",
     "wasm"
   ],
   "eslintConfig": {
@@ -53,18 +54,21 @@
   "author": "ks2211 <kaushik@cosmonic.com>",
   "license": "ISC",
   "devDependencies": {
+    "@babel/core": "^7.15.0",
+    "@babel/preset-env": "^7.15.0",
     "@types/chai": "^4.2.21",
     "@types/chai-as-promised": "^7.1.4",
     "@types/mocha": "^9.0.0",
     "@typescript-eslint/eslint-plugin": "^4.22.0",
     "@typescript-eslint/parser": "^4.29.2",
     "@wasm-tool/wasm-pack-plugin": "^1.5.0",
+    "babel-loader": "^8.2.2",
     "chai": "^4.3.4",
     "chai-as-promised": "^7.1.1",
-    "copy-webpack-plugin": "^9.0.1",
     "eslint": "^7.32.0",
     "mocha": "^9.0.3",
     "path": "^0.12.7",
+    "prettier": "^2.3.2",
     "ts-loader": "^9.2.5",
     "ts-node": "^10.2.1",
     "typescript": "^4.3.5",
