@@ -49,7 +49,7 @@ More examples can be found in the [examples](examples/) directory, including sam
 **Browser**
 
 ```html
-<script src="dist/wasmcloud.js"></script>
+<script src="https://unpkg.com/@wasmcloud/wasmcloud-js@<VERSION>/dist/wasmcloud.js"></script>
 <script>
   (async () => {
     // start the host passing the name, registry tls enabled, a list of nats ws/wss hosts or the natsConnection object, a map of invocation callbacks, and a host heartbeat interval (default is 30 seconds)
@@ -97,13 +97,10 @@ There are some caveats to using with a bundler:
 * If using with `create-react-app`, the webpack config will need to be ejected via `npm run eject` OR an npm library like `react-app-rewired` can handle the config injection.
 
 ```javascript
-// as commonjs -- import or require both work
-import { wasmcloudjs } from '@wasmcloud/wasmcloud-js/dist/cjs/wasmcloud'
-
 // as esm -- this will grant you access to the types/params
-// either import or require will work
-const { startHost } = require('@wasmcloud/wasmcloud-js);
 import { startHost } from '@wasmcloud/wasmcloud-js';
+// as cjs
+// const wasmcloudjs = require('@wasmcloud/wasmcloud-js);
 
 async function cjsHost() {
     const host = await wasmcloudjs.startHost('default', false, ['ws://localhost:4222'])
@@ -122,15 +119,15 @@ esmHost();
 ```javascript
 // webpack config, add this to the plugin section
 plugins: [
-		new CopyPlugin({
-			patterns: [
-				{
-					from: 'node_modules/@wasmcloud/wasmcloud-js/dist/wasmcloud-rs-js/pkg/*.wasm',
-					to: '[name].wasm'
-				}
-			]
-		}),
-	]
+    new CopyPlugin({
+        patterns: [
+            {
+                from: 'node_modules/@wasmcloud/wasmcloud-js/dist/wasmcloud-rs-js/pkg/*.wasm',
+                to: '[name].wasm'
+            }
+        ]
+    }),
+]
 ```
 
 **Node** 

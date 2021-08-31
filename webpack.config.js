@@ -12,8 +12,14 @@ const sharedConfig = {
 	}
 }
 
-// base
-const baseConfig = {
+// this is specifically to use in a script tag
+const browserConfig = {
+	output: {
+		webassemblyModuleFilename: 'wasmcloud.wasm',
+		filename: 'wasmcloud.js',
+		path: path.resolve(__dirname, 'dist'),
+		library: 'wasmcloudjs'
+	},
 	entry: './src/index.ts',
 	module: {
 		rules: [
@@ -35,29 +41,9 @@ const baseConfig = {
 	...sharedConfig
 }
 
-// this is specifically to use in a script tag
-const browserConfig = {
-	output: {
-		webassemblyModuleFilename: 'wasmcloud.wasm',
-		filename: 'wasmcloud.js',
-		path: path.resolve(__dirname, 'dist'),
-		library: 'wasmcloudjs'
-	}
-}
-
-// this is used for require(wasmcloudjs) or import { wasmcloudjs } from 'dist/cjs/'
-const commonJSConfig = {
-	output: {
-		webassemblyModuleFilename: 'wasmcloud.wasm',
-		filename: 'wasmcloud.js',
-		path: path.resolve(__dirname, 'dist', 'cjs'),
-		libraryTarget: 'commonjs2',
-		library: 'wasmcloudjs'
-	}
-}
-
 // this is used to bundle the rust wasm code in order to properly import into the compiled typescript code in the dist/src dir
-const wasmConfig = {
+// the tsc compiler handles the src code to cjs
+const commonJSConfig = {
 	entry: './wasmcloud-rs-js/pkg/index.js',
 	output: {
 		webassemblyModuleFilename: 'wasmcloud.wasm',
@@ -85,16 +71,8 @@ const wasmConfig = {
 module.exports = (env) => {
 	switch (env.target) {
 		case 'cjs':
-			return [{
-				...commonJSConfig,
-				...baseConfig
-			}];
-		case 'wasm':
-			return wasmConfig
+			return commonJSConfig
 		default:
-			return [{
-				...baseConfig,
-				...browserConfig
-			}];
+			return browserConfig
 	}
 };
