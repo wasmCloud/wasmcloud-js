@@ -1,7 +1,7 @@
 import { encode } from '@msgpack/msgpack';
 import { connect, ConnectionOptions, NatsConnection, Subscription } from 'nats.ws';
 
-import { Actor, newActor } from './actor';
+import { Actor, startActor } from './actor';
 import { createEventMessage, EventType } from './events';
 import { fetchActor, fetchActorDigest, ImageDigest } from './fetch';
 import {
@@ -41,7 +41,7 @@ export class Host {
     heartbeatInterval: number,
     natsConnOpts: Array<string> | ConnectionOptions,
     wasm: any,
-    invocationCallbacks?: InvocationCallbacks
+    invocationCallbacks: InvocationCallbacks
   ) {
     const hostKey = new wasm.HostKey();
     this.name = name;
@@ -109,12 +109,15 @@ export class Host {
     this.eventsSubscription = null;
   }
 
-  async launchActor(actorRef: string) {
+  async launchActor(actorRef: string, invocationCallback?: Function) {
     const actor: LaunchActorMessage = {
       actor_ref: actorRef,
       host_id: this.key
     };
     this.natsConn.publish(`wasmbus.ctl.${this.name}.cmd.${this.key}.la`, jsonEncode(actor));
+    if (invocationCallback) {
+      this.invocationCallbacks![actorRef] = invocationCallback;
+    }
   }
 
   async stopActor(actorRef: string) {
@@ -123,6 +126,7 @@ export class Host {
       actor_ref: actorRef
     };
     this.natsConn.publish(`wasmbus.ctl.${this.name}.cmd.${this.key}.sa`, jsonEncode(actorToStop));
+    delete this.invocationCallbacks![actorRef];
   }
 
   async listenLaunchActor() {
@@ -147,7 +151,7 @@ export class Host {
           url = actorRef;
         }
         const actorModule: Uint8Array = await fetchActor(url);
-        const actor: Actor = await newActor(
+        const actor: Actor = await startActor(
           this.name,
           this.key,
           actorModule,
@@ -241,7 +245,7 @@ export async function startHost(
     heartbeatInterval ? heartbeatInterval : HOST_HEARTBEAT_INTERVAL,
     natsConnection,
     wasm,
-    invocationCallbacks
+    invocationCallbacks || {}
   );
   await host.startHost();
   return host;

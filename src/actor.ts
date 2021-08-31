@@ -20,8 +20,9 @@ export class Actor {
   hostKey: string;
   hostName: string;
   wasm: any;
+  invocationCallback?: Function;
 
-  constructor(hostName: string = 'default', hostKey: string, wasm: any) {
+  constructor(hostName: string = 'default', hostKey: string, wasm: any, invocationCallback?: Function) {
     this.key = '';
     this.hostName = hostName;
     this.hostKey = hostKey;
@@ -40,6 +41,7 @@ export class Actor {
       }
     };
     this.wasm = wasm;
+    this.invocationCallback = invocationCallback;
   }
 
   async startActor(actorBuffer: Uint8Array) {
@@ -97,7 +99,7 @@ export class Actor {
     );
   }
 
-  async subscribeInvocations(natsConn: NatsConnection, invocationCallback?: Function) {
+  async subscribeInvocations(natsConn: NatsConnection) {
     // subscribe to topic, wait for invokes, invoke the host, if callback set, send message
     const invocationsTopic: Subscription = natsConn.subscribe(`wasmbus.rpc.${this.hostName}.${this.key}`);
     for await (const invocationMessage of invocationsTopic) {
@@ -111,15 +113,15 @@ export class Actor {
           msg: invocationResult
         })
       );
-      if (invocationCallback) {
-        invocationCallback(invocationResult);
+      if (this.invocationCallback) {
+        this.invocationCallback(invocationResult);
       }
     }
     throw new Error('actor.inovcation subscription closed');
   }
 }
 
-export async function newActor(
+export async function startActor(
   hostName: string,
   hostKey: string,
   actorModule: Uint8Array,
@@ -127,10 +129,10 @@ export async function newActor(
   wasm: any,
   invocationCallback?: Function
 ): Promise<Actor> {
-  const actor: Actor = new Actor(hostName, hostKey, wasm);
+  const actor: Actor = new Actor(hostName, hostKey, wasm, invocationCallback);
   await actor.startActor(actorModule);
   await actor.publishActorStarted(natsConn);
-  Promise.all([actor.subscribeInvocations(natsConn, invocationCallback)]).catch(err => {
+  Promise.all([actor.subscribeInvocations(natsConn)]).catch(err => {
     throw err;
   });
   return actor;

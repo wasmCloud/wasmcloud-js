@@ -7,11 +7,9 @@ services:
     volumes: 
      - ./docker-registry.yml:/etc/docker/registry/config.yml
   nats:
-    image: nats:2.1.9
+    image: nats:latest
     ports:
-      - "6222:6222"
       - "4222:4222"
-      - "8222:8222"
     volumes:
       - ./nats.conf:/etc/nats.conf
     command: "-c=/etc/nats.conf -js"
