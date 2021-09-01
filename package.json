@@ -18,7 +18,7 @@
     "clean": "rm -rf ./dist/ && rm -rf ./wasmcloud-rs-js/pkg/",
     "lint": "eslint --ext .ts src test",
     "format": "prettier --write 'src/**/*.ts' 'test/**/*.ts'",
-    "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha --require ts-node/register",
+    "test": "mocha --require ts-node/register",
     "watch": "npm run clean && tsc -w --declrataion",
     "prepare": "npm run build"
   },

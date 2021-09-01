@@ -28,6 +28,13 @@ type FetchActorDigestResponse = {
   annotations: any;
 };
 
+/**
+ * fetchActorDigest fetches the actor digest from a registry (sha)
+ *
+ * @param {string} actorRef - the actor url e.g host:port/image:version
+ * @param {boolean} withTLS - whether or not the registry uses tls
+ * @returns {ImageDigest}
+ */
 export async function fetchActorDigest(actorRef: string, withTLS?: boolean): Promise<ImageDigest> {
   const image: Array<string> = actorRef.split('/');
   const registry: string = image[0];
@@ -55,6 +62,12 @@ export async function fetchActorDigest(actorRef: string, withTLS?: boolean): Pro
   };
 }
 
+/**
+ * fetchActor fetches an actor from either the local disk or a registry and returns it as uint8array
+ *
+ * @param {string} url - the url of the actor module
+ * @returns {Uint8Array}
+ */
 export async function fetchActor(url: string): Promise<Uint8Array> {
   const response: AxiosResponse = await axios
     .get(url, {

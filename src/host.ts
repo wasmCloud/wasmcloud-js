@@ -16,6 +16,9 @@ import { jsonDecode, jsonEncode, uuidv4 } from './util';
 
 const HOST_HEARTBEAT_INTERVAL: number = 30000;
 
+/**
+ * Host holds the js/browser host
+ */
 export class Host {
   name: string;
   key: string;
@@ -55,6 +58,9 @@ export class Host {
     this.invocationCallbacks = invocationCallbacks;
   }
 
+  /**
+   * connectNATS connects to nats using either the array of servers or the connection options object
+   */
   async connectNATS() {
     const opts: ConnectionOptions = Array.isArray(this.natsConnOpts)
       ? {
@@ -64,10 +70,16 @@ export class Host {
     this.natsConn = await connect(opts);
   }
 
+  /**
+   * disconnectNATS disconnects from nats
+   */
   async disconnectNATS() {
     this.natsConn.close();
   }
 
+  /**
+   * startHeartbeat starts a heartbeat publish message every X seconds based on the interval
+   */
   async startHeartbeat() {
     this.heartbeatIntervalId;
     const heartbeat: HeartbeatMessage = {
@@ -88,11 +100,19 @@ export class Host {
     }, this.heartbeatInterval);
   }
 
+  /**
+   * stopHeartbeat clears the heartbeat interval
+   */
   async stopHeartbeat() {
     clearInterval(this.heartbeatIntervalId);
     this.heartbeatIntervalId = null;
   }
 
+  /**
+   * subscribeToEvents subscribes to the events on the host
+   *
+   * @param eventCallback - an optional callback(data) to handle the event message
+   */
   async subscribeToEvents(eventCallback?: Function) {
     this.eventsSubscription = this.natsConn.subscribe(`wasmbus.evt.${this.name}`);
     for await (const event of this.eventsSubscription) {
@@ -104,11 +124,20 @@ export class Host {
     throw new Error('evt subscription was closed');
   }
 
+  /**
+   * unsubscribeEvents unsubscribes and removes the events subscription
+   */
   async unsubscribeEvents() {
     this.eventsSubscription?.unsubscribe();
     this.eventsSubscription = null;
   }
 
+  /**
+   * launchActor launches an actor via the launch actor message
+   *
+   * @param actorRef - the actor to start
+   * @param invocationCallback - an optional callback(data) to handle the invocation
+   */
   async launchActor(actorRef: string, invocationCallback?: Function) {
     const actor: LaunchActorMessage = {
       actor_ref: actorRef,
@@ -120,15 +149,22 @@ export class Host {
     }
   }
 
+  /**
+   * stopActor stops an actor by publishing the sa message
+   *
+   * @param {string} actorRef - the actor to stop
+   */
   async stopActor(actorRef: string) {
     const actorToStop: StopActorMessage = {
       host_id: this.key,
       actor_ref: actorRef
     };
     this.natsConn.publish(`wasmbus.ctl.${this.name}.cmd.${this.key}.sa`, jsonEncode(actorToStop));
-    delete this.invocationCallbacks![actorRef];
   }
 
+  /**
+   * listenLaunchActor listens for start actor message and will fetch the actor (either from disk or registry) and initialize the actor
+   */
   async listenLaunchActor() {
     // subscribe to the .la topic `wasmbus.ctl.${this.name}.cmd.${this.key}.la`
     // decode the data
@@ -176,10 +212,13 @@ export class Host {
     throw new Error('la.subscription was closed');
   }
 
+  /**
+   * listenStopActor listens for the actor stopped message and will tear down the actor on message receive
+   */
   async listenStopActor() {
     // listen for stop actor message, decode the data
     // publish actor_stopped to the lattice
-    // delete the actor from the host
+    // delete the actor from the host and remove the invocation callback
     const actorsTopic: Subscription = this.natsConn.subscribe(`wasmbus.ctl.${this.name}.cmd.${this.key}.sa`);
     for await (const actorMessage of actorsTopic) {
       const actorData = jsonDecode(actorMessage.data);
@@ -192,10 +231,20 @@ export class Host {
         jsonEncode(createEventMessage(this.key, EventType.ActorStopped, actorStop))
       );
       delete this.actors[(actorData as StopActorMessage).actor_ref];
+      delete this.invocationCallbacks![(actorData as StopActorMessage).actor_ref];
     }
     throw new Error('sa.subscription was closed');
   }
 
+  /**
+   * createLinkDefinition creates a link definition between an actor and a provider (unused)
+   *
+   * @param {string} actorKey - the actor key
+   * @param {string} providerKey - the provider public key
+   * @param {string} linkName - the name of the link
+   * @param {string} contractId - the contract id of the linkdef
+   * @param {any} values - list of key/value pairs to pass for the linkdef
+   */
   async createLinkDefinition(actorKey: string, providerKey: string, linkName: string, contractId: string, values: any) {
     const linkDefinition: CreateLinkDefMessage = {
       actor_id: actorKey,
@@ -207,6 +256,9 @@ export class Host {
     this.natsConn.publish(`wasmbus.rpc.${this.name}.${providerKey}.${linkName}.linkdefs.put`, encode(linkDefinition));
   }
 
+  /**
+   * startHost connects to nats, starts the heartbeat, listens for actors start/stop
+   */
   async startHost() {
     await this.connectNATS();
     Promise.all([this.startHeartbeat(), this.listenLaunchActor(), this.listenStopActor()]).catch((err: Error) => {
@@ -214,6 +266,9 @@ export class Host {
     });
   }
 
+  /**
+   * stopHost stops the heartbeat, stops all actors, drains the nats connections and disconnects from nats
+   */
   async stopHost() {
     // stop the heartbeat
     await this.stopHeartbeat();
@@ -230,6 +285,16 @@ export class Host {
   }
 }
 
+/**
+ * startHost is the main function to start the js/browser host
+ *
+ * @param {string} name - the name of the host (defaults to 'default')
+ * @param {boolean} withRegistryTLS - whether or not remote registries use tls
+ * @param {Array<string>|ConnectionOptions} natsConnection - an array of nats websocket servers OR a full nats connection object
+ * @param {InvocationCallbacks} invocationCallbacks - a map of actor refs as the key with a callback(data) as the value
+ * @param {number} heartbeatInterval - used to determine the heartbeat to the lattice (defaults to 30000 or 30 seconds)
+ * @returns {Host}
+ */
 export async function startHost(
   name: string,
   withRegistryTLS: boolean = true,

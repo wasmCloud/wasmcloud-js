@@ -30,7 +30,6 @@ const browserConfig = {
 			}
 		]
 	},
-
 	plugins: [
 		new WasmPackPlugin({
 			crateDirectory: path.resolve(__dirname, 'wasmcloud-rs-js'),
