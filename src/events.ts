@@ -17,6 +17,14 @@ export type EventData = {
   data: any;
 };
 
+/**
+ * createEventMessage is a helper function to create a message for "wasmbus.evt.{host}"
+ *
+ * @param {string} hostKey - the host public key
+ * @param {EventType} eventType - the event type using the EventType enum
+ * @param {any} data - the json data object
+ * @returns {EventData}
+ */
 export function createEventMessage(hostKey: string, eventType: EventType, data: any): EventData {
   return {
     data: data,

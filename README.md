@@ -9,12 +9,11 @@ In this demonstration video we will demonstration the following:
 * Load an HTTP Server capability into a wasmCloud Host running on a machine
 * Load an the wasmcloud-js host into a web browser
 * Load an 'echo' actor into the web browser
-* **seemlessly** bind the actor to the capability provider through Lattice
+* **seamlessly** bind the actor to the capability provider through Lattice
 * Access the webserver, which in turn delivers the request to the actor, processes it, and returns it to the requestion client via the capability
 * Unload the actor
 
 https://user-images.githubusercontent.com/1530656/130013412-b9a9daa6-fc71-424b-814c-2ca400926794.mp4
-
 
 
 
@@ -45,26 +44,29 @@ $ npm install @wasmcloud/wasmcloud-js
 
 ## Usage
 
+More examples can be found in the [examples](examples/) directory, including sample `webpack` and `esbuild` configurations 
+
 **Browser**
 
 ```html
-<script src="dist/wasmcloud.js"></script>
+<script src="https://unpkg.com/@wasmcloud/wasmcloud-js@<VERSION>/dist/wasmcloud.js"></script>
 <script>
   (async () => {
     // start the host passing the name, registry tls enabled, a list of nats ws/wss hosts or the natsConnection object, a map of invocation callbacks, and a host heartbeat interval (default is 30 seconds)
     const host = await wasmcloudjs.startHost("default", false, ["ws://localhost:4222"], {}, 30000);
-    // the host will automatically listen for actors start & stop messages, to manually listen for these messages
+    // the host will automatically listen for actors start & stop messages, to manually listen for these messages the following methods are exposed
+    // only call these methods if your host is not listening for actor start/stop
     // actor invocations are automatically returned to the host. if a user wants to handle the data, they can pass a map of callbacks using the actor ref/wasm file name as the key with a callback(data, result) function. The data contains the invocation data and the result contains the invocation result
-    (async() => {
-        await host.listenLaunchActor(
-            {
-                "localhost:5000/echo:0.2.2": (data, result) => console.log(data.operation, result);
-            }
-        );
-        await host.listenStopActor();
-    })();
-    // to launch an actor manually from the library from a registry
-    await host.launchActor("registry.com/actor:0.1.1")
+    // (async() => {
+    //     await host.listenLaunchActor(
+    //         {
+    //             "localhost:5000/echo:0.2.2": (data, result) => console.log(data.operation, result);
+    //         }
+    //     );
+    //     await host.listenStopActor();
+    // })();
+    // to launch an actor manually from the library from a registry, optionally a callback can be passed to handle the invocation results
+    await host.launchActor("registry.com/actor:0.1.1", (data) => { /* handle data */})
     // to launch an actrom manually from local disk (note the .wasm is required)
     await host.launchActor("./actor.wasm");
     // to listen for events, you can call the subscribeToEvents and pass an optional callback to handle the event data
@@ -90,32 +92,42 @@ $ npm install @wasmcloud/wasmcloud-js
 
 There are some caveats to using with a bundler: 
 
-* The module contains `.wasm` files that need to be present alongside the final build output. Using `webpack-copy-plugin` can solve this issue.
+* The module contains `.wasm` files that need to be present alongside the final build output. Using `webpack-copy-plugin` (or `fs.copyFile` with other bundlers) can solve this issue.
 
-* Using the es6 imports is currently broken due to `webpack` bundling and the `.wasm` file -- this is being tracked/fixed.
+* If using with `create-react-app`, the webpack config will need to be ejected via `npm run eject` OR an npm library like `react-app-rewired` can handle the config injection.
 
 ```javascript
-import { wasmcloudjs } from '@wasmcloud/wasmcloud-js/dist/cjs/wasmcloud'
+// as esm -- this will grant you access to the types/params
+import { startHost } from '@wasmcloud/wasmcloud-js';
+// as cjs
+// const wasmcloudjs = require('@wasmcloud/wasmcloud-js);
 
-(async() => {
+async function cjsHost() {
     const host = await wasmcloudjs.startHost('default', false, ['ws://localhost:4222'])
     console.log(host);
-})()
+}
 
+async function esmHost() {
+    const host = await startHost('default', false, ['ws://localhost:4222'])
+    console.log(host);
+}
+
+cjsHost();
+esmHost();
 ```
 
 ```javascript
 // webpack config, add this to the plugin section
 plugins: [
-		new CopyPlugin({
-			patterns: [
-				{
-					from: 'node_modules/@wasmcloud/wasmcloud-js/dist/cjs/*.wasm',
-					to: '[name].wasm'
-				}
-			]
-		}),
-	]
+    new CopyPlugin({
+        patterns: [
+            {
+                from: 'node_modules/@wasmcloud/wasmcloud-js/dist/wasmcloud-rs-js/pkg/*.wasm',
+                to: '[name].wasm'
+            }
+        ]
+    }),
+]
 ```
 
 **Node** 

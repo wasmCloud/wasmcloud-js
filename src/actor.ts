@@ -13,6 +13,9 @@ import {
 } from './types';
 import { jsonEncode, parseJwt, uuidv4 } from './util';
 
+/**
+ * Actor holds the actor wasm module
+ */
 export class Actor {
   claims: ActorClaims;
   key: string;
@@ -44,6 +47,11 @@ export class Actor {
     this.invocationCallback = invocationCallback;
   }
 
+  /**
+   * startActor takes an actor wasm uint8array, extracts the jwt, validates the jwt, and uses wapcJS to instantiate the module
+   *
+   * @param {Uint8Array} actorBuffer - the wasm actor module as uint8array
+   */
   async startActor(actorBuffer: Uint8Array) {
     const token: string = await this.wasm.extract_jwt(actorBuffer);
     const valid: boolean = await this.wasm.validate_jwt(token);
@@ -55,6 +63,11 @@ export class Actor {
     this.module = await instantiate(actorBuffer);
   }
 
+  /**
+   * stopActor publishes the stop_actor message
+   *
+   * @param {NatsConnection} natsConn - the nats connection object
+   */
   async stopActor(natsConn: NatsConnection) {
     const actorToStop: StopActorMessage = {
       host_id: this.hostKey,
@@ -63,6 +76,11 @@ export class Actor {
     natsConn.publish(`wasmbus.ctl.${this.hostName}.cmd.${this.hostKey}.sa`, jsonEncode(actorToStop));
   }
 
+  /**
+   * publishActorStarted publishes the claims, the actor_started, and health_check_pass messages
+   *
+   * @param {NatsConnection} natsConn - the natsConnection object
+   */
   async publishActorStarted(natsConn: NatsConnection) {
     // publish claims
     const claims: ActorClaimsMessage = {
@@ -99,6 +117,11 @@ export class Actor {
     );
   }
 
+  /**
+   *  subscribeInvocations does a subscribe on nats for invocations
+   *
+   * @param {NatsConnection} natsConn the nats connection object
+   */
   async subscribeInvocations(natsConn: NatsConnection) {
     // subscribe to topic, wait for invokes, invoke the host, if callback set, send message
     const invocationsTopic: Subscription = natsConn.subscribe(`wasmbus.rpc.${this.hostName}.${this.key}`);
@@ -120,7 +143,17 @@ export class Actor {
     throw new Error('actor.inovcation subscription closed');
   }
 }
-
+/**
+ * startActor initializes an actor and listens for invocation messages
+ *
+ * @param {string} hostName - the name of the host
+ * @param {string} hostKey - the publickey of the host
+ * @param {Uint8Array} actorModule - the wasm module of the actor
+ * @param {NatsConnection} natsConn - the nats connection object
+ * @param {any} wasm - the rust wasm module
+ * @param {Function} invocationCallback - an optional function to call when the invocation is successful
+ * @returns {Actor}
+ */
 export async function startActor(
   hostName: string,
   hostKey: string,

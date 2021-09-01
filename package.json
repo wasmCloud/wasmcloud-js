@@ -1,6 +1,6 @@
 {
   "name": "@wasmcloud/wasmcloud-js",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "wasmcloud host in JavaScript/Browser",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
@@ -11,16 +11,14 @@
     "wasmcloud-rs-js"
   ],
   "scripts": {
-    "build": "npm run clean && npm run build:browser && npm run build:ts && npm run build:cjs",
+    "build": "npm run clean && npm run build:browser && npm run build:cjs",
     "build:browser": "webpack",
-    "build:ts": "tsc --declaration && npm run build:wasmbundle",
-    "build:cjs": "webpack --env target=cjs",
+    "build:cjs": "tsc --declaration && webpack --env target=cjs",
     "build:wasm": "cd wasmcloud-rs-js && wasm-pack build",
-    "build:wasmbundle": "webpack --env target=wasm",
     "clean": "rm -rf ./dist/ && rm -rf ./wasmcloud-rs-js/pkg/",
     "lint": "eslint --ext .ts src test",
     "format": "prettier --write 'src/**/*.ts' 'test/**/*.ts'",
-    "test": "mocha",
+    "test": "mocha --require ts-node/register",
     "watch": "npm run clean && tsc -w --declrataion",
     "prepare": "npm run build"
   },
@@ -48,8 +46,7 @@
     "extension": [
       "ts"
     ],
-    "spec": "test/**/*.test.ts",
-    "require": "ts-node/register"
+    "spec": "test/**/*.test.ts"
   },
   "author": "ks2211 <kaushik@cosmonic.com>",
   "license": "ISC",
