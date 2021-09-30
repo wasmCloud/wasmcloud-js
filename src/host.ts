@@ -10,7 +10,9 @@ import {
   HeartbeatMessage,
   InvocationCallbacks,
   LaunchActorMessage,
-  StopActorMessage
+  StopActorMessage,
+  HostCall,
+  Writer
 } from './types';
 import { jsonDecode, jsonEncode, uuidv4 } from './util';
 
@@ -25,7 +27,6 @@ export class Host {
   seed: string;
   heartbeatInterval: number;
   heartbeatIntervalId: any;
-  invocationCallbacks?: InvocationCallbacks;
   withRegistryTLS: boolean;
   actors: {
     [key: string]: {
@@ -37,14 +38,20 @@ export class Host {
   natsConn!: NatsConnection;
   eventsSubscription!: Subscription | null;
   wasm: any;
+  invocationCallbacks?: InvocationCallbacks;
+  hostCalls?: {
+    [key: string]: HostCall
+  };
+  writers?: {
+    [key: string]: Writer
+  };
 
   constructor(
     name: string = 'default',
     withRegistryTLS: boolean,
     heartbeatInterval: number,
     natsConnOpts: Array<string> | ConnectionOptions,
-    wasm: any,
-    invocationCallbacks: InvocationCallbacks
+    wasm: any
   ) {
     const hostKey = new wasm.HostKey();
     this.name = name;
@@ -55,7 +62,9 @@ export class Host {
     this.wasm = wasm;
     this.heartbeatInterval = heartbeatInterval;
     this.natsConnOpts = natsConnOpts;
-    this.invocationCallbacks = invocationCallbacks;
+    this.invocationCallbacks = {};
+    this.hostCalls = {};
+    this.writers = {};
   }
 
   /**
@@ -64,8 +73,8 @@ export class Host {
   async connectNATS() {
     const opts: ConnectionOptions = Array.isArray(this.natsConnOpts)
       ? {
-          servers: this.natsConnOpts
-        }
+        servers: this.natsConnOpts
+      }
       : this.natsConnOpts;
     this.natsConn = await connect(opts);
   }
@@ -137,8 +146,10 @@ export class Host {
    *
    * @param actorRef - the actor to start
    * @param invocationCallback - an optional callback(data) to handle the invocation
+   * @param hostCall - the hostCallback
+   * @param writer - writer for the hostCallback, can be undefined
    */
-  async launchActor(actorRef: string, invocationCallback?: Function) {
+  async launchActor(actorRef: string, invocationCallback?: Function, hostCall?: HostCall, writer?: Writer) {
     const actor: LaunchActorMessage = {
       actor_ref: actorRef,
       host_id: this.key
@@ -146,6 +157,12 @@ export class Host {
     this.natsConn.publish(`wasmbus.ctl.${this.name}.cmd.${this.key}.la`, jsonEncode(actor));
     if (invocationCallback) {
       this.invocationCallbacks![actorRef] = invocationCallback;
+    }
+    if (hostCall) {
+      this.hostCalls![actorRef] = hostCall
+    }
+    if (writer) {
+      this.writers![actorRef] = writer
     }
   }
 
@@ -180,9 +197,8 @@ export class Host {
         let url: string;
         if (usingRegistry) {
           const actorDigest: ImageDigest = await fetchActorDigest(actorRef);
-          url = `${this.withRegistryTLS ? 'https://' : 'http://'}${actorDigest.registry}/v2/${actorDigest.name}/blobs/${
-            actorDigest.digest
-          }`;
+          url = `${this.withRegistryTLS ? 'https://' : 'http://'}${actorDigest.registry}/v2/${actorDigest.name}/blobs/${actorDigest.digest
+            }`;
         } else {
           url = actorRef;
         }
@@ -193,7 +209,9 @@ export class Host {
           actorModule,
           this.natsConn,
           this.wasm,
-          this.invocationCallbacks?.[actorRef]
+          this.invocationCallbacks?.[actorRef],
+          this.hostCalls?.[actorRef],
+          this.writers?.[actorRef]
         );
 
         if (this.actors[actorRef]) {
@@ -291,7 +309,6 @@ export class Host {
  * @param {string} name - the name of the host (defaults to 'default')
  * @param {boolean} withRegistryTLS - whether or not remote registries use tls
  * @param {Array<string>|ConnectionOptions} natsConnection - an array of nats websocket servers OR a full nats connection object
- * @param {InvocationCallbacks} invocationCallbacks - a map of actor refs as the key with a callback(data) as the value
  * @param {number} heartbeatInterval - used to determine the heartbeat to the lattice (defaults to 30000 or 30 seconds)
  * @returns {Host}
  */
@@ -299,7 +316,6 @@ export async function startHost(
   name: string,
   withRegistryTLS: boolean = true,
   natsConnection: Array<string> | ConnectionOptions,
-  invocationCallbacks?: InvocationCallbacks,
   heartbeatInterval?: number
 ) {
   const wasmModule: any = await import('../wasmcloud-rs-js/pkg/');
@@ -309,8 +325,7 @@ export async function startHost(
     withRegistryTLS,
     heartbeatInterval ? heartbeatInterval : HOST_HEARTBEAT_INTERVAL,
     natsConnection,
-    wasm,
-    invocationCallbacks || {}
+    wasm
   );
   await host.startHost();
   return host;

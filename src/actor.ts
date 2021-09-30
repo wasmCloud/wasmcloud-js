@@ -1,7 +1,7 @@
 import { encode, decode } from '@msgpack/msgpack';
-import { instantiate, WapcHost } from '@wapc/host';
 import { NatsConnection, Subscription } from 'nats.ws';
 
+import { instantiate, Wasmbus } from './wasmbus';
 import { createEventMessage, EventType } from './events';
 import {
   ActorClaims,
@@ -9,7 +9,9 @@ import {
   ActorStartedMessage,
   ActorHealthCheckPassMessage,
   InvocationMessage,
-  StopActorMessage
+  StopActorMessage,
+  HostCall,
+  Writer
 } from './types';
 import { jsonEncode, parseJwt, uuidv4 } from './util';
 
@@ -19,13 +21,15 @@ import { jsonEncode, parseJwt, uuidv4 } from './util';
 export class Actor {
   claims: ActorClaims;
   key: string;
-  module!: WapcHost;
+  module!: Wasmbus;
   hostKey: string;
   hostName: string;
   wasm: any;
   invocationCallback?: Function;
+  hostCall?: HostCall;
+  writer?: Writer;
 
-  constructor(hostName: string = 'default', hostKey: string, wasm: any, invocationCallback?: Function) {
+  constructor(hostName: string = 'default', hostKey: string, wasm: any, invocationCallback?: Function, hostCall?: HostCall, writer?: Writer) {
     this.key = '';
     this.hostName = hostName;
     this.hostKey = hostKey;
@@ -45,6 +49,8 @@ export class Actor {
     };
     this.wasm = wasm;
     this.invocationCallback = invocationCallback;
+    this.hostCall = hostCall;
+    this.writer = writer;
   }
 
   /**
@@ -60,7 +66,7 @@ export class Actor {
     }
     this.claims = parseJwt(token);
     this.key = this.claims.sub;
-    this.module = await instantiate(actorBuffer);
+    this.module = await instantiate(actorBuffer, this.hostCall, this.writer);
   }
 
   /**
@@ -152,6 +158,8 @@ export class Actor {
  * @param {NatsConnection} natsConn - the nats connection object
  * @param {any} wasm - the rust wasm module
  * @param {Function} invocationCallback - an optional function to call when the invocation is successful
+ * @param {HostCall} hostCall - the hostCallback
+ * @param {Writer} writer - the hostCallback writer
  * @returns {Actor}
  */
 export async function startActor(
@@ -160,9 +168,11 @@ export async function startActor(
   actorModule: Uint8Array,
   natsConn: NatsConnection,
   wasm: any,
-  invocationCallback?: Function
+  invocationCallback?: Function,
+  hostCall?: HostCall,
+  writer?: Writer
 ): Promise<Actor> {
-  const actor: Actor = new Actor(hostName, hostKey, wasm, invocationCallback);
+  const actor: Actor = new Actor(hostName, hostKey, wasm, invocationCallback, hostCall, writer);
   await actor.startActor(actorModule);
   await actor.publishActorStarted(natsConn);
   Promise.all([actor.subscribeInvocations(natsConn)]).catch(err => {

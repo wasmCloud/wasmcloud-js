@@ -52,9 +52,9 @@ More examples can be found in the [examples](examples/) directory, including sam
 <script src="https://unpkg.com/@wasmcloud/wasmcloud-js@<VERSION>/dist/wasmcloud.js"></script>
 <script>
   (async () => {
-    // start the host passing the name, registry tls enabled, a list of nats ws/wss hosts or the natsConnection object, a map of invocation callbacks, and a host heartbeat interval (default is 30 seconds)
-    const host = await wasmcloudjs.startHost("default", false, ["ws://localhost:4222"], {}, 30000);
-    // the host will automatically listen for actors start & stop messages, to manually listen for these messages the following methods are exposed
+    // Start the host passing the name, registry tls enabled, a list of nats ws/wss hosts or the natsConnection object, and an optional host heartbeat interval (default is 30 seconds)
+    const host = await wasmcloudjs.startHost("default", false, ["ws://localhost:4222"], 30000);
+    // The host will automatically listen for actors start & stop messages, to manually listen for these messages the following methods are exposed
     // only call these methods if your host is not listening for actor start/stop
     // actor invocations are automatically returned to the host. if a user wants to handle the data, they can pass a map of callbacks using the actor ref/wasm file name as the key with a callback(data, result) function. The data contains the invocation data and the result contains the invocation result
     // (async() => {
@@ -65,24 +65,36 @@ More examples can be found in the [examples](examples/) directory, including sam
     //     );
     //     await host.listenStopActor();
     // })();
-    // to launch an actor manually from the library from a registry, optionally a callback can be passed to handle the invocation results
+    // To launch an actor manually from the library from a registry, optionally a callback can be passed to handle the invocation results. In addition, a hostCall callback and writer can be passed.
+    // The hostCallback format is as follows:
+    // ```
+    // (binding, namespace, operation, payload) => {
+    //    return Uint8Array(payload);
+    // })
+    // ```
     await host.launchActor("registry.com/actor:0.1.1", (data) => { /* handle data */})
-    // to launch an actrom manually from local disk (note the .wasm is required)
+    // Launch an actor with the hostCallback
+    await host.launchActor("registry.com/actor:0.1.1", (data) => { /* handle data */}, (binding, namespace, operation, payload) => {
+        // decode payload via messagepack
+        // const decoded = decode(payload);
+        return new Uint8Array(payload);
+    })
+    // To launch an actrom manually from local disk (note the .wasm is required)
     await host.launchActor("./actor.wasm");
-    // to listen for events, you can call the subscribeToEvents and pass an optional callback to handle the event data
+    // To listen for events, you can call the subscribeToEvents and pass an optional callback to handle the event data
     await host.subscribeToEvents((eventData) => console.log(eventData, eventData.source));
-    // to unsubscribe, call the unsubscribeEvents
+    // To unsubscribe, call the unsubscribeEvents
     await host.unsubscribeEvents();
-    // to start & stop the heartbeat events
+    // To start & stop the heartbeat events
     await host.startHeartbeat();
     await host.stopHeartbeat();
-    // the host will automatically connect to nats on start. to connect/reconnect to nats
+    // The host will automatically connect to nats on start. to connect/reconnect to nats
     await host.connectNATS();
-    // to close/drain all connections from nats, call the disconnectNATS() method
+    // To close/drain all connections from nats, call the disconnectNATS() method
     await host.disconnectNATS();
-    // stop the host
+    // Stop the host
     await host.stopHost();
-    // restart the host (this only needs to be called if the host is stopped, it is automatically called on the constructor)
+    // Restart the host (this only needs to be called if the host is stopped, it is automatically called on the constructor)
     await host.startHost();
   })();
 </script>

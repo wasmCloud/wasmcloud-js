@@ -87,3 +87,8 @@ export type InvocationMessage = {
 export type InvocationCallbacks = {
   [key: string]: Function;
 };
+
+/* eslint-disable no-unused-vars */
+export type HostCall = (binding: string, namespace: string, operation: string, payload: Uint8Array) => Uint8Array;
+/* eslint-disable no-unused-vars */
+export type Writer = (message: string) => void;
