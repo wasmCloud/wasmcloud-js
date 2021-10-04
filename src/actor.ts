@@ -29,7 +29,14 @@ export class Actor {
   hostCall?: HostCall;
   writer?: Writer;
 
-  constructor(hostName: string = 'default', hostKey: string, wasm: any, invocationCallback?: Function, hostCall?: HostCall, writer?: Writer) {
+  constructor(
+    hostName: string = 'default',
+    hostKey: string,
+    wasm: any,
+    invocationCallback?: Function,
+    hostCall?: HostCall,
+    writer?: Writer
+  ) {
     this.key = '';
     this.hostName = hostName;
     this.hostKey = hostKey;

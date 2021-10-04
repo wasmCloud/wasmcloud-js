@@ -19,7 +19,7 @@ export class Wasmbus extends WapcHost {
       wasi: imports.wasi,
       wasi_unstable: imports.wasi_unstable
     }).catch(e => {
-      throw new Error(`Invalid wasm binary: ${e.message}`)
+      throw new Error(`Invalid wasm binary: ${e.message}`);
     });
     super.initialize(result.instance);
 

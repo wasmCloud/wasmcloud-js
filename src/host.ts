@@ -40,10 +40,10 @@ export class Host {
   wasm: any;
   invocationCallbacks?: InvocationCallbacks;
   hostCalls?: {
-    [key: string]: HostCall
+    [key: string]: HostCall;
   };
   writers?: {
-    [key: string]: Writer
+    [key: string]: Writer;
   };
 
   constructor(
@@ -73,8 +73,8 @@ export class Host {
   async connectNATS() {
     const opts: ConnectionOptions = Array.isArray(this.natsConnOpts)
       ? {
-        servers: this.natsConnOpts
-      }
+          servers: this.natsConnOpts
+        }
       : this.natsConnOpts;
     this.natsConn = await connect(opts);
   }
@@ -159,10 +159,10 @@ export class Host {
       this.invocationCallbacks![actorRef] = invocationCallback;
     }
     if (hostCall) {
-      this.hostCalls![actorRef] = hostCall
+      this.hostCalls![actorRef] = hostCall;
     }
     if (writer) {
-      this.writers![actorRef] = writer
+      this.writers![actorRef] = writer;
     }
   }
 
@@ -197,8 +197,9 @@ export class Host {
         let url: string;
         if (usingRegistry) {
           const actorDigest: ImageDigest = await fetchActorDigest(actorRef);
-          url = `${this.withRegistryTLS ? 'https://' : 'http://'}${actorDigest.registry}/v2/${actorDigest.name}/blobs/${actorDigest.digest
-            }`;
+          url = `${this.withRegistryTLS ? 'https://' : 'http://'}${actorDigest.registry}/v2/${actorDigest.name}/blobs/${
+            actorDigest.digest
+          }`;
         } else {
           url = actorRef;
         }
