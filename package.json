@@ -75,7 +75,7 @@
   "dependencies": {
     "@msgpack/msgpack": "^2.7.0",
     "@wapc/host": "0.0.2",
-    "axios": "^0.21.1",
+    "axios": "^0.21.3",
     "nats.ws": "^1.2.0"
   }
 }
