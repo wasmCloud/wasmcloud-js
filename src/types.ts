@@ -4,6 +4,12 @@ export type HeartbeatMessage = {
     instances: number;
   }>;
   providers: [];
+  labels: object;
+};
+
+export type HostStartedMessage = {
+  labels: object;
+  friendly_name: string;
 };
 
 export type CreateLinkDefMessage = {

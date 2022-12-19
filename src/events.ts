@@ -1,10 +1,11 @@
 import { uuidv4 } from './util';
 
 export enum EventType {
-  HeartBeat = 'com.wasmcloud.lattice.host_heartbeat',
   ActorStarted = 'com.wasmcloud.lattice.actor_started',
   ActorStopped = 'com.wasmcloud.lattice.actor_stopped',
-  HealthCheckPass = 'com.wasmcloud.lattice.health_check_passed'
+  HeartBeat = 'com.wasmcloud.lattice.host_heartbeat',
+  HealthCheckPass = 'com.wasmcloud.lattice.health_check_passed',
+  HostStarted = 'com.wasmcloud.lattice.host_started'
 }
 
 export type EventData = {

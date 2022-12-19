@@ -4,3 +4,6 @@ index.html
 !examples/**/*index.html*
 *.sh*
 wasmcloud-rs-js/pkg/
+
+host_config.json
+*.wasm

@@ -13,6 +13,6 @@ let copyPlugin = {
 require('esbuild').build({
 	entryPoints: ['main.js'],
 	bundle: true,
-	outfile: 'out.js',
+	outfile: 'out-esbuild.js',
 	plugins: [copyPlugin]
 }).catch(() => process.exit(1))

@@ -12,7 +12,8 @@ import {
   LaunchActorMessage,
   StopActorMessage,
   HostCall,
-  Writer
+  Writer,
+  HostStartedMessage
 } from './types';
 import { jsonDecode, jsonEncode, uuidv4 } from './util';
 
@@ -34,6 +35,8 @@ export class Host {
       count: number;
     };
   };
+  labels: object;
+  friendlyName: string;
   natsConnOpts: Array<string> | ConnectionOptions;
   natsConn!: NatsConnection;
   eventsSubscription!: Subscription | null;
@@ -59,6 +62,13 @@ export class Host {
     this.seed = hostKey.seed;
     this.withRegistryTLS = withRegistryTLS;
     this.actors = {};
+    this.labels = {
+      // TODO: Could maybe pull the type of browser?
+      'hostcore.arch': 'web',
+      'hostcore.os': 'browser',
+      'hostcore.osfamily': 'js'
+    };
+    this.friendlyName = `java-script-${Math.round(Math.random() * 9999)}`;
     this.wasm = wasm;
     this.heartbeatInterval = heartbeatInterval;
     this.natsConnOpts = natsConnOpts;
@@ -93,7 +103,8 @@ export class Host {
     this.heartbeatIntervalId;
     const heartbeat: HeartbeatMessage = {
       actors: [],
-      providers: []
+      providers: [],
+      labels: this.labels
     };
     for (const actor in this.actors) {
       heartbeat.actors.push({
@@ -101,12 +112,13 @@ export class Host {
         instances: 1
       });
     }
-    this.heartbeatIntervalId = await setInterval(() => {
+    const heartbeatFn = () => {
       this.natsConn.publish(
         `wasmbus.evt.${this.name}`,
         jsonEncode(createEventMessage(this.key, EventType.HeartBeat, heartbeat))
       );
-    }, this.heartbeatInterval);
+    };
+    this.heartbeatIntervalId = setInterval(heartbeatFn, this.heartbeatInterval);
   }
 
   /**
@@ -115,6 +127,18 @@ export class Host {
   async stopHeartbeat() {
     clearInterval(this.heartbeatIntervalId);
     this.heartbeatIntervalId = null;
+  }
+
+  async publishHostStarted() {
+    const hostStarted: HostStartedMessage = {
+      labels: this.labels,
+      friendly_name: this.friendlyName
+    };
+
+    this.natsConn.publish(
+      `wasmbus.evt.${this.name}`,
+      jsonEncode(createEventMessage(this.key, EventType.HostStarted, hostStarted))
+    );
   }
 
   /**
@@ -280,7 +304,12 @@ export class Host {
    */
   async startHost() {
     await this.connectNATS();
-    Promise.all([this.startHeartbeat(), this.listenLaunchActor(), this.listenStopActor()]).catch((err: Error) => {
+    Promise.all([
+      this.publishHostStarted(),
+      this.startHeartbeat(),
+      this.listenLaunchActor(),
+      this.listenStopActor()
+    ]).catch((err: Error) => {
       throw err;
     });
   }
@@ -328,6 +357,7 @@ export async function startHost(
     natsConnection,
     wasm
   );
+
   await host.startHost();
   return host;
 }
