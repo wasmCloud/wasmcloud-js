@@ -3,13 +3,14 @@ services:
   registry:
     image: registry:2
     ports:
-     - "5000:5000"
+     - "5001:5001"
     volumes: 
      - ./docker-registry.yml:/etc/docker/registry/config.yml
   nats:
     image: nats:latest
     ports:
       - "4222:4222"
+      - "6222:6222"
     volumes:
       - ./nats.conf:/etc/nats.conf
     command: "-c=/etc/nats.conf -js"
