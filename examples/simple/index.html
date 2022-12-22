@@ -2,29 +2,96 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/x-icon" href="./favicon.ico">
+    <link rel="icon" type="image/x-icon" href="./favicon.ico" />
+    <link rel="stylesheet" href="main.css" />
     <title>wasmCloud JS</title>
-    <!-- <script src="https://unpkg.com/@wasmcloud/wasmcloud-js@1.0.4/dist/wasmcloud.js"></script> -->
-    
-    <!-- this uses the npm library-->
-    <!-- <script src="./out-webpack.js"></script>  -->
-    <!-- <script src="./out-esbuild.js"></script> -->
-    <script>
-      // (async() => {
-      //   console.log("USING THE BROWSER BUNDLE")
-      //   const host = await wasmcloudjs.startHost("default", false, ["ws://localhost:4222"])
-      //   console.log(host);
-      // })()
-    </script> 
   </head>
-  <body>
-    <h1> wasmCloud in the browser </h1>
+  <body id="pageBody">
+    <h1>wasmCloud Browser Host</h1>
     <!-- Launch a host -->
-    <label for="latticePrefix">Lattice Prefix:</label>
-    <input type="text" id="latticePrefix" name="latticePrefix" value="374b6434-f18d-4b93-8743-bcd3089e4d5b" placeholder="default" style="width:300px"><br><br>
-    <input id="hostButton" type="button" value = "Launch a Host">  
-    <!-- What hosts are running in this tab -->
-    <ol id="runningHosts"></ol>
+    <table>
+      <tr>
+        <td>
+          <label for="latticePrefix" class="tableLabel">Lattice Prefix:</label>
+        </td>
+        <td>
+          <input
+            type="text"
+            id="latticePrefix"
+            class="userInput"
+            name="latticePrefix"
+            value="default"
+            placeholder="default"
+          />
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <label for="natsUrl" class="tableLabel">NATS Url:</label>
+        </td>
+        <td>
+          <input
+            type="text"
+            id="natsUrl"
+            class="userInput"
+            name="natsUrl"
+            value="ws://localhost:6222"
+            placeholder="default"
+          />
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <input id="hostButton" type="button" value="Launch a Host" />
+        </td>
+      </tr>
+    </table>
+    <br />
+    <!-- What host is running in this tab -->
+    <div id="runningHost" hidden>
+      <h2> Running Host </h2>
+      <table>
+        <tr>
+          <td>
+            <label for="hostFriendlyName" class="tableLabel">Friendly Name</label>
+          </td>
+          <td>
+            <input type="text" id="hostFriendlyName" class="userInput" name="hostFriendlyName" disabled />
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <label for="hostId" class="tableLabel">Public Key</label>
+          </td>
+          <td>
+            <input type="text" id="hostId" class="userInput" name="hostId" disabled />
+          </td>
+        </tr>
+      </table>
+      <br />
+      <span id="recommendation"></span>
+      <h2>Running Actors</h2>
+      <table id="actors">
+        <thead>
+          <td style="width: 150px">Name</td>
+          <td style="width: 150px">Version</td>
+          <td style="width: 310px">Capabilities</td>
+        </thead>
+      </table>
+    </div>
+    <div
+      id="dropZone"
+      style="
+        text-align: center;
+        border: 3px solid #00c389;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+      "
+      hidden
+    ></div>
   </body>
   <footer>
     <script src="./out.js"></script>

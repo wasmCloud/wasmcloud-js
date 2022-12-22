@@ -11,9 +11,12 @@ import {
   InvocationMessage,
   StopActorMessage,
   HostCall,
-  Writer
+  Writer,
+  ActorStartedClaims
 } from './types';
 import { jsonEncode, parseJwt, uuidv4 } from './util';
+
+const CTL_TOPIC_PREFIX: string = 'wasmbus.ctl';
 
 /**
  * Actor holds the actor wasm module
@@ -47,6 +50,7 @@ export class Actor {
       sub: '',
       wascap: {
         name: '',
+        call_alias: '',
         hash: '',
         tags: [],
         caps: [],
@@ -84,9 +88,10 @@ export class Actor {
   async stopActor(natsConn: NatsConnection) {
     const actorToStop: StopActorMessage = {
       host_id: this.hostKey,
-      actor_ref: this.key
+      actor_ref: this.key,
+      count: 0
     };
-    natsConn.publish(`wasmbus.ctl.${this.hostName}.cmd.${this.hostKey}.sa`, jsonEncode(actorToStop));
+    natsConn.publish(`${CTL_TOPIC_PREFIX}.${this.hostName}.cmd.${this.hostKey}.sa`, jsonEncode(actorToStop));
   }
 
   /**
@@ -97,22 +102,36 @@ export class Actor {
   async publishActorStarted(natsConn: NatsConnection) {
     // publish claims
     const claims: ActorClaimsMessage = {
-      call_alias: '',
-      caps: this.claims.wascap.caps[0],
+      call_alias: this.claims.wascap.call_alias || 'N/A',
+      caps: this.claims.wascap.caps,
       iss: this.claims.iss,
       name: this.claims.wascap.name,
       rev: '1',
       sub: this.claims.sub,
-      tags: '',
+      tags: this.claims.wascap.tags,
       version: this.claims.wascap.ver
     };
     natsConn.publish(`lc.${this.hostName}.claims.${this.key}`, jsonEncode(claims));
 
+    const actorStartedClaims: ActorStartedClaims = {
+      call_alias: claims.call_alias,
+      caps: claims.caps,
+      issuer: claims.iss,
+      name: claims.name,
+      revision: claims.rev,
+      tags: claims.tags,
+      version: claims.version,
+      not_before_human: null,
+      expires_human: null
+    };
+
     // publish actor_started
     const actorStarted: ActorStartedMessage = {
+      annotations: {},
       api_version: 0,
       instance_id: uuidv4(),
-      public_key: this.key
+      public_key: this.key,
+      claims: actorStartedClaims
     };
     natsConn.publish(
       `wasmbus.evt.${this.hostName}`,

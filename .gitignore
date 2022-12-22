@@ -6,4 +6,5 @@ index.html
 wasmcloud-rs-js/pkg/
 
 host_config.json
+out.js
 *.wasm

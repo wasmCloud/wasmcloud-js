@@ -4,8 +4,8 @@ help:  ## Display this help
 install:
 	npm install
 
-esbuild: install
+build: install ## Install NPM dependencies and compile the JS library and wasmcloud.wasm file
 	node esbuild.js
 
-esbuild-run: esbuild ## Build and run wasmCloud with esbuild, then run httpserver
+run: build ## Build and run wasmCloud with esbuild, then run python3's httpserver
 	python3 -m http.server

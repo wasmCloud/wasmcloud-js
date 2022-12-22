@@ -28,21 +28,22 @@ export type ActorClaims = {
   wascap: {
     name: string;
     hash: string;
-    tags: Array<any>;
+    tags: Array<string>;
     caps: Array<string>;
     ver: string;
+    call_alias: string | null;
     prov: boolean;
   };
 };
 
 export type ActorClaimsMessage = {
   call_alias: string;
-  caps: any;
+  caps: Array<string>;
   iss: string;
   name: string;
   rev: string;
   sub: string;
-  tags: string;
+  tags: Array<string>;
   version: string;
 };
 
@@ -51,10 +52,24 @@ export type LaunchActorMessage = {
   host_id: string;
 };
 
+export type ActorStartedClaims = {
+  call_alias: string;
+  caps: string[];
+  issuer: string;
+  tags: Array<string>;
+  name: string;
+  revision: string;
+  version: string;
+  not_before_human: number | null;
+  expires_human: number | null;
+};
+
 export type ActorStartedMessage = {
   api_version: number;
   instance_id: string;
+  annotations: object;
   public_key: string;
+  claims: ActorStartedClaims;
 };
 
 export type ActorHealthCheckPassMessage = {
@@ -65,6 +80,7 @@ export type ActorHealthCheckPassMessage = {
 export type StopActorMessage = {
   host_id: string;
   actor_ref: string;
+  count: number;
 };
 
 export type ActorStoppedMessage = {
