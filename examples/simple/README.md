@@ -12,7 +12,7 @@ This directory contains examples of using the `wasmcloud-js` library with an `es
 
 ## Build and Run
 
-This example is bundled with `esbuild` and runs locally with use of the `python3` http server.
+This example is bundled with `esbuild` and runs locally with use of the `python3` http server. As mentioned above you will need a NATS server running with JetStream and WebSockets. You can either launch a NATS server yourself with `nats-server -js -c ../../test/infra/nats.conf`, or use the included Docker compose file with `make infra`
 
 ```sh
 make run

@@ -4,6 +4,9 @@ help:  ## Display this help
 install:
 	npm install
 
+infra: ## Launch required infrastructure using Docker
+	cd ../../test/infra && docker compose up
+
 build: install ## Install NPM dependencies and compile the JS library and wasmcloud.wasm file
 	node esbuild.js
 
