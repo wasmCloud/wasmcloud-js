@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> This host is **experimental** and does not implement all features or security settings. As a result, this host should not be used in production. For deploying wasmCloud to production, use the [primary host runtime](https://github.com/wasmCloud/wasmCloud/tree/main/crates/host).
+
 # wasmCloud Host in JavaScript/Browser
 
 This is the JavaScript implementation of the wasmCloud host for the browser (NodeJS support in progress). The library runs a host inside a web browser/application that connects to a remote lattice via NATS and can run wasmCloud actors in the browser. The host will automatically listen for actor start/stop from NATS and will initialize the actor using `wapcJS`. Any invocations will be handled by the browser actor and returned to the requesting host via NATS. Users can pass callbacks to handle invocation and event data.
