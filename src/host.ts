@@ -12,11 +12,13 @@ import {
   LaunchActorMessage,
   StopActorMessage,
   HostCall,
-  Writer
+  Writer,
+  HostStartedMessage
 } from './types';
 import { jsonDecode, jsonEncode, uuidv4 } from './util';
 
 const HOST_HEARTBEAT_INTERVAL: number = 30000;
+const CTL_TOPIC_PREFIX: string = 'wasmbus.ctl';
 
 /**
  * Host holds the js/browser host
@@ -34,6 +36,8 @@ export class Host {
       count: number;
     };
   };
+  labels: object;
+  friendlyName: string;
   natsConnOpts: Array<string> | ConnectionOptions;
   natsConn!: NatsConnection;
   eventsSubscription!: Subscription | null;
@@ -59,6 +63,13 @@ export class Host {
     this.seed = hostKey.seed;
     this.withRegistryTLS = withRegistryTLS;
     this.actors = {};
+    this.labels = {
+      // TODO: Could maybe pull the type of browser?
+      'hostcore.arch': 'web',
+      'hostcore.os': 'browser',
+      'hostcore.osfamily': 'js'
+    };
+    this.friendlyName = `java-script-${Math.round(Math.random() * 9999)}`;
     this.wasm = wasm;
     this.heartbeatInterval = heartbeatInterval;
     this.natsConnOpts = natsConnOpts;
@@ -93,7 +104,8 @@ export class Host {
     this.heartbeatIntervalId;
     const heartbeat: HeartbeatMessage = {
       actors: [],
-      providers: []
+      providers: [],
+      labels: this.labels
     };
     for (const actor in this.actors) {
       heartbeat.actors.push({
@@ -101,12 +113,13 @@ export class Host {
         instances: 1
       });
     }
-    this.heartbeatIntervalId = await setInterval(() => {
+    const heartbeatFn = () => {
       this.natsConn.publish(
         `wasmbus.evt.${this.name}`,
         jsonEncode(createEventMessage(this.key, EventType.HeartBeat, heartbeat))
       );
-    }, this.heartbeatInterval);
+    };
+    this.heartbeatIntervalId = setInterval(heartbeatFn, this.heartbeatInterval);
   }
 
   /**
@@ -115,6 +128,18 @@ export class Host {
   async stopHeartbeat() {
     clearInterval(this.heartbeatIntervalId);
     this.heartbeatIntervalId = null;
+  }
+
+  async publishHostStarted() {
+    const hostStarted: HostStartedMessage = {
+      labels: this.labels,
+      friendly_name: this.friendlyName
+    };
+
+    this.natsConn.publish(
+      `wasmbus.evt.${this.name}`,
+      jsonEncode(createEventMessage(this.key, EventType.HostStarted, hostStarted))
+    );
   }
 
   /**
@@ -154,7 +179,7 @@ export class Host {
       actor_ref: actorRef,
       host_id: this.key
     };
-    this.natsConn.publish(`wasmbus.ctl.${this.name}.cmd.${this.key}.la`, jsonEncode(actor));
+    this.natsConn.publish(`${CTL_TOPIC_PREFIX}.${this.name}.cmd.${this.key}.la`, jsonEncode(actor));
     if (invocationCallback) {
       this.invocationCallbacks![actorRef] = invocationCallback;
     }
@@ -166,6 +191,20 @@ export class Host {
     }
   }
 
+  async launchActorFromBytes(actorBytes: Uint8Array) {
+    const actor: Actor = await startActor(this.name, this.key, actorBytes, this.natsConn, this.wasm);
+
+    if (this.actors[actor.claims.sub]) {
+      this.actors[actor.claims.sub].count++;
+    } else {
+      this.actors[actor.claims.sub] = {
+        count: 1,
+        actor: actor
+      };
+    }
+    return actor;
+  }
+
   /**
    * stopActor stops an actor by publishing the sa message
    *
@@ -174,21 +213,23 @@ export class Host {
   async stopActor(actorRef: string) {
     const actorToStop: StopActorMessage = {
       host_id: this.key,
-      actor_ref: actorRef
+      actor_ref: actorRef,
+      // Stop all instances
+      count: 0
     };
-    this.natsConn.publish(`wasmbus.ctl.${this.name}.cmd.${this.key}.sa`, jsonEncode(actorToStop));
+    this.natsConn.publish(`${CTL_TOPIC_PREFIX}.${this.name}.cmd.${this.key}.sa`, jsonEncode(actorToStop));
   }
 
   /**
    * listenLaunchActor listens for start actor message and will fetch the actor (either from disk or registry) and initialize the actor
    */
   async listenLaunchActor() {
-    // subscribe to the .la topic `wasmbus.ctl.${this.name}.cmd.${this.key}.la`
+    // subscribe to the .la topic `${CTL_TOPIC_PREFIX}.${this.name}.cmd.${this.key}.la`
     // decode the data
     // fetch the actor from registry  or local
     // start the actor class
     // listen for invocation events
-    const actorsTopic: Subscription = this.natsConn.subscribe(`wasmbus.ctl.${this.name}.cmd.${this.key}.la`);
+    const actorsTopic: Subscription = this.natsConn.subscribe(`${CTL_TOPIC_PREFIX}.${this.name}.cmd.${this.key}.la`);
     for await (const actorMessage of actorsTopic) {
       const actorData = jsonDecode(actorMessage.data);
       const actorRef: string = (actorData as LaunchActorMessage).actor_ref;
@@ -238,19 +279,26 @@ export class Host {
     // listen for stop actor message, decode the data
     // publish actor_stopped to the lattice
     // delete the actor from the host and remove the invocation callback
-    const actorsTopic: Subscription = this.natsConn.subscribe(`wasmbus.ctl.${this.name}.cmd.${this.key}.sa`);
+    const actorsTopic: Subscription = this.natsConn.subscribe(`${CTL_TOPIC_PREFIX}.${this.name}.cmd.${this.key}.sa`);
     for await (const actorMessage of actorsTopic) {
+      console.log('GOT ACTOR STOP MESSAGE');
       const actorData = jsonDecode(actorMessage.data);
-      const actorStop: ActorStoppedMessage = {
-        instance_id: uuidv4(),
-        public_key: this.actors[(actorData as StopActorMessage).actor_ref].actor.key
-      };
-      this.natsConn.publish(
-        `wasmbus.evt.${this.name}`,
-        jsonEncode(createEventMessage(this.key, EventType.ActorStopped, actorStop))
-      );
-      delete this.actors[(actorData as StopActorMessage).actor_ref];
-      delete this.invocationCallbacks![(actorData as StopActorMessage).actor_ref];
+      console.dir(actorData);
+      const actor = this.actors[(actorData as StopActorMessage).actor_ref];
+      if (actor) {
+        const actorStop: ActorStoppedMessage = {
+          instance_id: uuidv4(),
+          public_key: this.actors[(actorData as StopActorMessage).actor_ref].actor.key
+        };
+        this.natsConn.publish(
+          `wasmbus.evt.${this.name}`,
+          jsonEncode(createEventMessage(this.key, EventType.ActorStopped, actorStop))
+        );
+        delete this.actors[(actorData as StopActorMessage).actor_ref];
+        delete this.invocationCallbacks![(actorData as StopActorMessage).actor_ref];
+      } else {
+        console.log('actor not running on this host');
+      }
     }
     throw new Error('sa.subscription was closed');
   }
@@ -280,7 +328,12 @@ export class Host {
    */
   async startHost() {
     await this.connectNATS();
-    Promise.all([this.startHeartbeat(), this.listenLaunchActor(), this.listenStopActor()]).catch((err: Error) => {
+    Promise.all([
+      this.publishHostStarted(),
+      this.startHeartbeat(),
+      this.listenLaunchActor(),
+      this.listenStopActor()
+    ]).catch((err: Error) => {
       throw err;
     });
   }
@@ -328,6 +381,7 @@ export async function startHost(
     natsConnection,
     wasm
   );
+
   await host.startHost();
   return host;
 }

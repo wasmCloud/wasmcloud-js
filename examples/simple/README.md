@@ -1,50 +1,42 @@
-# wasmcloud-js Examples
+# Simple HTML/JS example
 
-This directory contains examples of using the `wasmcloud-js` library with sample `webpack` and `esbuild` configurations.
+This directory contains examples of using the `wasmcloud-js` library with an `esbuild` configuration.
 
 ## Prerequisities
 
-* NATS with WebSockets enabled
+- `make`
+- `npm`
+- `cargo` and a Rust `wasm32-unknown-unknown` toolchain installed
+- `python3` or an equivalent way to serve static assets from local files
+- `nats-server` with JetStream and WebSockets enabled
 
-    * There is sample infra via docker in the `test/infra` directory of this repo, `cd test/infra && docker-compose up`
+## Build and Run
 
-* wasmCloud lattice (OTP Version)
-
-* (OPTIONAL) Docker Registry with CORS configured
-
-    * If launching actors from remote registries in the browser host, CORS must be configured on the registry server
-
-* NodeJS, NPM, npx
-
-## Build
+This example is bundled with `esbuild` and runs locally with use of the `python3` http server. As mentioned above you will need a NATS server running with JetStream and WebSockets. You can either launch a NATS server yourself with `nats-server -js -c ../../test/infra/nats.conf`, or use the included Docker compose file with `make infra`
 
 ```sh
-$ npm install # this will run and build the rust deps
-$ npm install webpack esbuild copy-webpack-plugin fs
-$ #### if you want to use esbuild, follow these next 2 steps ####
-$ node esbuild.js # this produces the esbuild version
-$ mv out-esbuild.js out.js # rename the esbuild version
-$ #### if you want to use webpack, follow the steps below ####
-$ npx webpack --config=example-webpack.config.js # this produces the webpack output
-$ mv out-webpack.js out.js #rename the webpack version to out.js
+make run
 ```
 
-## Usage
+In another terminal you'll need to run a NATS server with websockets enabled, which you can do with:
 
-1. Build the code with esbuild or webpack
+```
+cd ../../test/infra && docker compose up
+```
 
-2. Rename the output file to `out.js`
+## Starting Actors
 
-3. Start a web server inside this directory (e.g `python3 -m http.server` or `npx serve`)
+For this section you should install [`wash`, the wasmCloud shell](https://wasmcloud.com/docs/installation).
+You can start actors on this host by dragging the `.wasm` file into the browser window after you launch the host. To run the `echo` example, in your terminal, download the sample actor with `wash`:
 
-3. Navigate to a browser `localhost:<PORT>`
+```
+wash reg pull wasmcloud.azurecr.io/echo:0.3.4
+```
 
-4. Open the developer console to view the host output
+Then, drag that `echo.wasm` file into the browser. You should see a single `Echo` actor running. You can directly call this actor's HTTP handler using `wash`:
 
-5. In the dev tools run `host` and you will get the full host object and methods
+```
+wash call MBCFOPM6JW2APJLXJD3Z5O4CN7CPYJ2B4FTKLJUR5YR5MITIU7HD3WD5 HttpServer.HandleRequest '{"method": "GET", "path": "/echo", "body": "", "queryString":"","header":{}}'
+```
 
-6. Start an actor with `host.launchActor('registry:5000/image', (data) => console.log(data))`. Echo actor is recommended (the 2nd parameter here is an invocation callback to handle the data from an invocation)
-
-7. Link the actor with a provider running in Wasmcloud (eg `httpserver`)
-
-8. Run a `curl localhost:port/echo` to see the response in the console (based off the invocation callback).
+And you'll get back a raw response like: `Call response (raw): ��statusCode�Ȧheader��body�;{"body":[],"method":"GET","path":"/echo","query_string":""}`

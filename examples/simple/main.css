@@ -1,0 +1,15 @@
+body {
+    font-family: sans-serif;
+    padding: 16px;
+    background-color: #D9E1E2;
+    color: #253746;
+}
+
+input.userInput {
+    /* Enough to display a 56 character public key */
+    width: 510px;
+}
+
+label.tabelLabel {
+    width: 150px;
+}
