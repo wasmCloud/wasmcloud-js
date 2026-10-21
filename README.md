@@ -1,3 +1,7 @@
+> [!WARNING]
+> This repository is archived and is no longer maintained. It receives no bug fixes or security updates.
+> For current wasmCloud tooling and TypeScript resources, see [wasmCloud/wasmCloud](https://github.com/wasmCloud/wasmCloud) and [wasmCloud/typescript](https://github.com/wasmCloud/typescript).
+
 > [!IMPORTANT]
 > This host is **experimental** and does not implement all features or security settings. As a result, this host should not be used in production. For deploying wasmCloud to production, use the [primary host runtime](https://github.com/wasmCloud/wasmCloud/tree/main/crates/host).
 
